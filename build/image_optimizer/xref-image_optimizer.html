@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>modulegraph cross reference for image_optimizer.py, pyi_rth_inspect.py</title>
+    <title>modulegraph cross reference for image_optimizer.py, pyi_rth_inspect.py, pyi_rth_pkgutil.py, pyi_rth_pyqt5.py</title>
     <style>
       .node { padding: 0.5em 0 0.5em; border-top: thin grey dotted; }
       .moduletype { font: smaller italic }
@@ -11,7 +11,7 @@
     </style>
   </head>
   <body>
-    <h1>modulegraph cross reference for image_optimizer.py, pyi_rth_inspect.py</h1>
+    <h1>modulegraph cross reference for image_optimizer.py, pyi_rth_inspect.py, pyi_rth_pkgutil.py, pyi_rth_pyqt5.py</h1>
 
 <div class="node">
   <a name="image_optimizer.py"></a>
@@ -20,6 +20,8 @@
 imports:
     <a href="#PIL">PIL</a>
  &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PyQt5.QtCore">PyQt5.QtCore</a>
+ &#8226;   <a href="#PyQt5.QtWidgets">PyQt5.QtWidgets</a>
  &#8226;   <a href="#_collections_abc">_collections_abc</a>
  &#8226;   <a href="#_weakrefset">_weakrefset</a>
  &#8226;   <a href="#abc">abc</a>
@@ -162,6 +164,8 @@ imports:
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#posixpath">posixpath</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
+ &#8226;   <a href="#pyi_rth_pkgutil.py">pyi_rth_pkgutil.py</a>
+ &#8226;   <a href="#pyi_rth_pyqt5.py">pyi_rth_pyqt5.py</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#re._casefix">re._casefix</a>
  &#8226;   <a href="#re._compiler">re._compiler</a>
@@ -188,6 +192,42 @@ imports:
 <span class="moduletype">Script</span>  <div class="import">
 imports:
     <a href="#inspect">inspect</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#sys">sys</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#image_optimizer.py">image_optimizer.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pyi_rth_pkgutil.py"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyInstaller/hooks/rthooks/pyi_rth_pkgutil.py" type="text/plain"><tt>pyi_rth_pkgutil.py</tt></a>
+<span class="moduletype">Script</span>  <div class="import">
+imports:
+    <a href="#pkgutil">pkgutil</a>
+ &#8226;   <a href="#pyimod02_importers">pyimod02_importers</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#image_optimizer.py">image_optimizer.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pyi_rth_pyqt5.py"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyInstaller/hooks/rthooks/pyi_rth_pyqt5.py" type="text/plain"><tt>pyi_rth_pyqt5.py</tt></a>
+<span class="moduletype">Script</span>  <div class="import">
+imports:
+    <a href="#_pyi_rth_utils">_pyi_rth_utils</a>
+ &#8226;   <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#sys">sys</a>
 
@@ -2415,6 +2455,91 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="PyQt5"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyQt5/__init__.py" type="text/plain"><tt>PyQt5</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#PyQt5.sip">PyQt5.sip</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PyQt5.QtCore">PyQt5.QtCore</a>
+ &#8226;   <a href="#PyQt5.QtGui">PyQt5.QtGui</a>
+ &#8226;   <a href="#PyQt5.QtWidgets">PyQt5.QtWidgets</a>
+ &#8226;   <a href="#PyQt5.sip">PyQt5.sip</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PyQt5.QtCore"></a>
+  <tt>PyQt5.QtCore</tt> <span class="moduletype"><tt>/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyQt5/QtCore.abi3.so</tt></span>  <div class="import">
+imports:
+    <a href="#PyQt5">PyQt5</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PyQt5.QtGui">PyQt5.QtGui</a>
+ &#8226;   <a href="#PyQt5.QtWidgets">PyQt5.QtWidgets</a>
+ &#8226;   <a href="#image_optimizer.py">image_optimizer.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PyQt5.QtGui"></a>
+  <tt>PyQt5.QtGui</tt> <span class="moduletype"><tt>/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyQt5/QtGui.abi3.so</tt></span>  <div class="import">
+imports:
+    <a href="#PyQt5">PyQt5</a>
+ &#8226;   <a href="#PyQt5.QtCore">PyQt5.QtCore</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PyQt5.QtWidgets">PyQt5.QtWidgets</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PyQt5.QtWidgets"></a>
+  <tt>PyQt5.QtWidgets</tt> <span class="moduletype"><tt>/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyQt5/QtWidgets.abi3.so</tt></span>  <div class="import">
+imports:
+    <a href="#PyQt5">PyQt5</a>
+ &#8226;   <a href="#PyQt5.QtCore">PyQt5.QtCore</a>
+ &#8226;   <a href="#PyQt5.QtGui">PyQt5.QtGui</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#image_optimizer.py">image_optimizer.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PyQt5.sip"></a>
+  <tt>PyQt5.sip</tt> <span class="moduletype"><tt>/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyQt5/sip.cpython-312-darwin.so</tt></span>  <div class="import">
+imports:
+    <a href="#PyQt5">PyQt5</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PyQt5">PyQt5</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="__future__"></a>
   <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/__future__.py" type="text/plain"><tt>__future__</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -2778,6 +2903,7 @@ imported by:
 imported by:
     <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib.abc">importlib.abc</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -2791,6 +2917,7 @@ imported by:
     <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._bootstrap">importlib._bootstrap</a>
  &#8226;   <a href="#importlib.abc">importlib.abc</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -2833,6 +2960,7 @@ imported by:
     <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
  &#8226;   <a href="#importlib.util">importlib.util</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -2844,6 +2972,7 @@ imported by:
 imported by:
     <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
  &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -3019,6 +3148,45 @@ imports:
   <div class="import">
 imported by:
     <a href="#decimal">decimal</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="_pyi_rth_utils"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyInstaller/fake-modules/_pyi_rth_utils/__init__.py" type="text/plain"><tt>_pyi_rth_utils</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#sys">sys</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
+ &#8226;   <a href="#pyi_rth_pyqt5.py">pyi_rth_pyqt5.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="_pyi_rth_utils.qt"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/site-packages/PyInstaller/fake-modules/_pyi_rth_utils/qt.py" type="text/plain"><tt>_pyi_rth_utils.qt</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#_pyi_rth_utils">_pyi_rth_utils</a>
+ &#8226;   <a href="#atexit">atexit</a>
+ &#8226;   <a href="#importlib">importlib</a>
+ &#8226;   <a href="#os">os</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#_pyi_rth_utils">_pyi_rth_utils</a>
+ &#8226;   <a href="#pyi_rth_pyqt5.py">pyi_rth_pyqt5.py</a>
 
   </div>
 
@@ -3261,6 +3429,7 @@ imported by:
 imported by:
     <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
  &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -3425,6 +3594,7 @@ imported by:
   <tt>atexit</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
     <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#weakref">weakref</a>
 
@@ -3746,6 +3916,7 @@ imported by:
  &#8226;   <a href="#importlib.metadata._collections">importlib.metadata._collections</a>
  &#8226;   <a href="#importlib.resources.readers">importlib.resources.readers</a>
  &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#selectors">selectors</a>
  &#8226;   <a href="#shlex">shlex</a>
@@ -7175,6 +7346,7 @@ imported by:
  &#8226;   <a href="#operator">operator</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pickle">pickle</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#statistics">statistics</a>
  &#8226;   <a href="#tempfile">tempfile</a>
@@ -7459,14 +7631,14 @@ imports:
  &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._bootstrap">importlib._bootstrap</a>
  &#8226;   <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
- &#8226;   <a href="#importlib.machinery">importlib.machinery</a>
  &#8226;   <a href="#sys">sys</a>
  &#8226;   <a href="#warnings">warnings</a>
 
   </div>
   <div class="import">
 imported by:
-    <a href="#importlib">importlib</a>
+    <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
+ &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._abc">importlib._abc</a>
  &#8226;   <a href="#importlib._bootstrap">importlib._bootstrap</a>
  &#8226;   <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
@@ -7478,6 +7650,7 @@ imported by:
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
  &#8226;   <a href="#importlib.util">importlib.util</a>
  &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
 
   </div>
 
@@ -7590,9 +7763,9 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#importlib">importlib</a>
- &#8226;   <a href="#importlib.abc">importlib.abc</a>
+    <a href="#importlib.abc">importlib.abc</a>
  &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#py_compile">py_compile</a>
 
   </div>
@@ -7769,6 +7942,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -7954,7 +8128,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#py_compile">py_compile</a>
+    <a href="#pkgutil">pkgutil</a>
+ &#8226;   <a href="#py_compile">py_compile</a>
  &#8226;   <a href="#zipfile">zipfile</a>
 
   </div>
@@ -7995,6 +8170,7 @@ imported by:
  &#8226;   <a href="#dataclasses">dataclasses</a>
  &#8226;   <a href="#importlib.metadata">importlib.metadata</a>
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
  &#8226;   <a href="#typing">typing</a>
  &#8226;   <a href="#typing_extensions">typing_extensions</a>
@@ -8256,6 +8432,8 @@ imported by:
   <tt>marshal</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
     <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -8541,6 +8719,8 @@ imported by:
  &#8226;   <a href="#PIL._typing">PIL._typing</a>
  &#8226;   <a href="#PIL._util">PIL._util</a>
  &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#_pyi_rth_utils">_pyi_rth_utils</a>
+ &#8226;   <a href="#_pyi_rth_utils.qt">_pyi_rth_utils.qt</a>
  &#8226;   <a href="#argparse">argparse</a>
  &#8226;   <a href="#bz2">bz2</a>
  &#8226;   <a href="#contextlib">contextlib</a>
@@ -8567,9 +8747,11 @@ imported by:
  &#8226;   <a href="#ntpath">ntpath</a>
  &#8226;   <a href="#os.path">os.path</a>
  &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#posixpath">posixpath</a>
  &#8226;   <a href="#py_compile">py_compile</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
+ &#8226;   <a href="#pyi_rth_pyqt5.py">pyi_rth_pyqt5.py</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#shlex">shlex</a>
  &#8226;   <a href="#shutil">shutil</a>
@@ -8600,6 +8782,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#os">os</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#py_compile">py_compile</a>
  &#8226;   <a href="#tracemalloc">tracemalloc</a>
 
@@ -8665,6 +8848,36 @@ imports:
 imported by:
     <a href="#logging">logging</a>
  &#8226;   <a href="#tracemalloc">tracemalloc</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pkgutil"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/pkgutil.py" type="text/plain"><tt>pkgutil</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#collections">collections</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#importlib">importlib</a>
+ &#8226;   <a href="#importlib.machinery">importlib.machinery</a>
+ &#8226;   <a href="#importlib.util">importlib.util</a>
+ &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#marshal">marshal</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#os.path">os.path</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PyQt5">PyQt5</a>
+ &#8226;   <a href="#pyi_rth_pkgutil.py">pyi_rth_pkgutil.py</a>
 
   </div>
 
@@ -8791,6 +9004,17 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="pyimod02_importers"></a>
+  <a target="code" href="" type="text/plain"><tt>pyimod02_importers</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pyi_rth_pkgutil.py">pyi_rth_pkgutil.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="quopri"></a>
   <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/quopri.py" type="text/plain"><tt>quopri</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -8905,6 +9129,7 @@ imported by:
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pickle">pickle</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#posixpath">posixpath</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#re">re</a>
@@ -9452,6 +9677,7 @@ imported by:
  &#8226;   <a href="#_compression">_compression</a>
  &#8226;   <a href="#_pydatetime">_pydatetime</a>
  &#8226;   <a href="#_pydecimal">_pydecimal</a>
+ &#8226;   <a href="#_pyi_rth_utils">_pyi_rth_utils</a>
  &#8226;   <a href="#argparse">argparse</a>
  &#8226;   <a href="#ast">ast</a>
  &#8226;   <a href="#base64">base64</a>
@@ -9491,10 +9717,12 @@ imported by:
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pickle">pickle</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#posixpath">posixpath</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#py_compile">py_compile</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
+ &#8226;   <a href="#pyi_rth_pyqt5.py">pyi_rth_pyqt5.py</a>
  &#8226;   <a href="#quopri">quopri</a>
  &#8226;   <a href="#re._compiler">re._compiler</a>
  &#8226;   <a href="#selectors">selectors</a>
@@ -9520,6 +9748,7 @@ imported by:
  &#8226;   <a href="#xml.sax">xml.sax</a>
  &#8226;   <a href="#xml.sax.saxutils">xml.sax.saxutils</a>
  &#8226;   <a href="#zipfile">zipfile</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -9678,6 +9907,7 @@ imported by:
  &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
  &#8226;   <a href="#zipfile">zipfile</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 
@@ -9806,6 +10036,7 @@ imported by:
  &#8226;   <a href="#inspect">inspect</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#pickle">pickle</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#subprocess">subprocess</a>
  &#8226;   <a href="#tempfile">tempfile</a>
@@ -10115,6 +10346,7 @@ imported by:
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#re._parser">re._parser</a>
@@ -10565,6 +10797,31 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="zipimport"></a>
+  <a target="code" href="/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/zipimport.py" type="text/plain"><tt>zipimport</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#_frozen_importlib">_frozen_importlib</a>
+ &#8226;   <a href="#_frozen_importlib_external">_frozen_importlib_external</a>
+ &#8226;   <a href="#_imp">_imp</a>
+ &#8226;   <a href="#_io">_io</a>
+ &#8226;   <a href="#_warnings">_warnings</a>
+ &#8226;   <a href="#importlib.readers">importlib.readers</a>
+ &#8226;   <a href="#marshal">marshal</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#zlib">zlib</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pkgutil">pkgutil</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="zlib"></a>
   <tt>zlib</tt> <span class="moduletype"><tt>/Users/PIOTR/.pyenv/versions/3.12.1/lib/python3.12/lib-dynload/zlib.cpython-312-darwin.so</tt></span>  <div class="import">
 imported by:
@@ -10575,6 +10832,7 @@ imported by:
  &#8226;   <a href="#shutil">shutil</a>
  &#8226;   <a href="#tarfile">tarfile</a>
  &#8226;   <a href="#zipfile">zipfile</a>
+ &#8226;   <a href="#zipimport">zipimport</a>
 
   </div>
 

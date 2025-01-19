@@ -1,0 +1,3 @@
+([('image_optimizer',
+   '/Users/PIOTR/Desktop/image_optimalizer/dist/image_optimizer',
+   'EXECUTABLE')],)
