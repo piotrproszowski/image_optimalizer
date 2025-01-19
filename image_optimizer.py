@@ -48,23 +48,41 @@ def is_image_file(filename):
     return os.path.splitext(filename)[1].lower() in image_extensions
 
 def main():
+    print("Welcome to the Image Optimizer!")
+    print("To exit the program, press Ctrl+C at any time.")
+    
     while True:
-        directory = input("Podaj ścieżkę do folderu ze zdjęciami: ")
-        if not os.path.isdir(directory):
-            print(f"Błąd: Folder {directory} nie istnieje. Spróbuj ponownie.")
+        try:
+            while True:
+                directory = input("\nEnter the path to the images folder: ")
+                if not os.path.isdir(directory):
+                    print(f"Error: Folder {directory} does not exist. Please try again.")
+                    continue
+                break
+
+            max_width = int(input("Enter maximum width (default 800): ") or 800)
+            max_height = int(input("Enter maximum height (default 800): ") or 800)
+            quality = int(input("Enter quality (1-100, default 85): ") or 85)
+            convert_to_webp = input("Convert to webp (yes/no, default yes): ").lower() == 'yes' if input("Convert to webp (yes/no, default yes): ") else True
+
+            image_count = 0
+            for filename in os.listdir(directory):
+                if is_image_file(filename):
+                    image_count += 1
+                    input_image_path = os.path.join(directory, filename)
+                    output_image_path = os.path.join(directory, f"optimized_{filename}")
+                    optimize_image(input_image_path, output_image_path, max_width, max_height, quality, convert_to_webp)
+            
+            print(f"\nOptimized {image_count} images in folder {directory}")
+            print("You can now enter another folder path.")
+
+        except KeyboardInterrupt:
+            print("\n\nProgram terminated by user. Goodbye!")
+            break
+        except Exception as e:
+            print(f"\nAn unexpected error occurred: {e}")
+            print("Please try again.")
             continue
-        break
-
-    max_width = int(input("Podaj maksymalną szerokość (domyślnie 800): ") or 800)
-    max_height = int(input("Podaj maksymalną wysokość (domyślnie 800): ") or 800)
-    quality = int(input("Podaj jakość (1-100, domyślnie 85): ") or 85)
-    convert_to_webp = input("Konwertować do webp (tak/nie, domyślnie tak): ").lower() == 'tak' if input("Konwertować do webp (tak/nie, domyślnie tak): ") else True
-
-    for filename in os.listdir(directory):
-        if is_image_file(filename):
-            input_image_path = os.path.join(directory, filename)
-            output_image_path = os.path.join(directory, f"optimized_{filename}")
-            optimize_image(input_image_path, output_image_path, max_width, max_height, quality, convert_to_webp)
 
 if __name__ == "__main__":
     main()
