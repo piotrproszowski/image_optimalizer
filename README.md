@@ -5,10 +5,12 @@ This program allows you to resize multiple images at once while maintaining aspe
 
 ## Quick Start: Using Compiled Version
 
-- Simply download the appropriate version from the `dist` folder:
+- Download the appropriate version from the `dist` folder:
+  - `image_optimizer.exe` for Windows
+  - `image_optimizer.app` for macOS
 - No installation or Python required
 - Double-click to run
-  - On macOS you might need to use: `chmod +x image_optimizer` to make it executable
+  - On macOS, you might need to use: `chmod +x image_optimizer` to make it executable
 
 ## Features
 
@@ -30,4 +32,3 @@ This program allows you to resize multiple images at once while maintaining aspe
   - TIFF
   - WebP
 - Automatic dark/light theme detection
-- Cross-platform compatibility (Windows, macOS, Linux)
