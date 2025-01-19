@@ -2,19 +2,12 @@
 
 A simple Python tool for batch image optimization. This program allows you to resize multiple images at once while maintaining aspect ratio, optimize their quality, and optionally convert them to WebP format.
 
-## Quick Start
+## Quick Start: Using Compiled Version
 
-### Windows
-
-1. Download the compiled version from the `dist` folder
-2. Run `image_optimizer.exe`
-3. Follow the on-screen instructions
-
-### macOS and Linux
-
-1. Make sure you have Python installed
-2. Follow the "Running from Source" instructions below
-3. The program works exactly the same on all platforms
+- Simply download the appropriate version from the `dist` folder:
+- No installation or Python required
+- Double-click to run
+  - On macOS you might need to use: `chmod +x image_optimizer` to make it executable
 
 ## Features
 
@@ -26,20 +19,3 @@ A simple Python tool for batch image optimization. This program allows you to re
 - Interactive command-line interface
 - Continuous operation mode (process multiple folders)
 - Cross-platform compatibility (Windows, macOS, Linux)
-
-## Installation Options
-
-### Option 1: Using Compiled Version (Windows only)
-
-- Simply download `image_optimizer.exe` from the `dist` folder
-- No installation or Python required
-- Double-click to run
-
-### Option 2: Running from Source (All platforms)
-
-#### Requirements
-
-- Python 3.x
-- Pillow (PIL) library
-
-To install the required library:
