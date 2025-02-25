@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QHBoxLayout, QPushButton, QLabel, QLineEdit, 
                             QProgressBar, QCheckBox, QFileDialog, QMessageBox,
                             QComboBox)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QMimeData
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent
 
 def optimize_image(input_path, output_path, max_width, max_height, quality, convert_to_webp=False):
     """Optimize the image by resizing and optionally converting to webp format."""
@@ -31,6 +32,32 @@ def is_image_file(filename):
     """Check if a file is an image based on its extension."""
     image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
     return os.path.splitext(filename)[1].lower() in image_extensions
+
+class DragDropLineEdit(QLineEdit):
+    """Custom QLineEdit that accepts drag and drop of folders."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """Handle drag enter events for the line edit."""
+        if event.mimeData().hasUrls():
+            # Check if at least one URL is a directory
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if os.path.isdir(path):
+                    event.acceptProposedAction()
+                    return
+        
+    def dropEvent(self, event: QDropEvent):
+        """Handle drop events for the line edit."""
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if os.path.isdir(path):
+                self.setText(path)
+                event.acceptProposedAction()
+                return
 
 class ImageOptimizerWindow(QMainWindow):
     def __init__(self):
@@ -160,10 +187,10 @@ class ImageOptimizerWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # Folder selection
+        # Folder selection with drag and drop support
         folder_layout = QHBoxLayout()
-        self.folder_input = QLineEdit()
-        self.folder_input.setPlaceholderText("Select images folder...")
+        self.folder_input = DragDropLineEdit()
+        self.folder_input.setPlaceholderText("Select images folder or drag & drop folder here...")
         browse_button = QPushButton("Browse")
         browse_button.clicked.connect(self.browse_folder)
         folder_layout.addWidget(self.folder_input)
@@ -210,11 +237,16 @@ class ImageOptimizerWindow(QMainWindow):
         self.quality_input = QLineEdit("85")
         self.webp_checkbox = QCheckBox("Convert to WebP")
         self.webp_checkbox.setChecked(True)
+        
+        # Add recursive option
+        self.recursive_checkbox = QCheckBox("Process subfolders recursively")
+        self.recursive_checkbox.setChecked(True)
 
         # Add settings to layout
         layout.addWidget(QLabel("Quality (1-100):"))
         layout.addWidget(self.quality_input)
         layout.addWidget(self.webp_checkbox)
+        layout.addWidget(self.recursive_checkbox)
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -250,6 +282,28 @@ class ImageOptimizerWindow(QMainWindow):
             self.width_input.setText(str(width))
             self.height_input.setText(str(height))
 
+    def get_all_image_files(self, directory, recursive=False):
+        """Get all image files in the directory, optionally recursively."""
+        image_files = []
+        
+        if recursive:
+            # Walk through all directories and subdirectories
+            for root, _, files in os.walk(directory):
+                for filename in files:
+                    if is_image_file(filename):
+                        # Store the full path and relative path for processing
+                        full_path = os.path.join(root, filename)
+                        rel_path = os.path.relpath(full_path, directory)
+                        image_files.append((full_path, rel_path))
+        else:
+            # Just process the files in the top directory
+            for filename in os.listdir(directory):
+                full_path = os.path.join(directory, filename)
+                if os.path.isfile(full_path) and is_image_file(filename):
+                    image_files.append((full_path, filename))
+                    
+        return image_files
+
     def start_optimization(self):
         directory = self.folder_input.text()
         if not os.path.isdir(directory):
@@ -260,6 +314,7 @@ class ImageOptimizerWindow(QMainWindow):
             max_width = int(self.width_input.text() or 800)
             max_height = int(self.height_input.text() or 800)
             quality = int(self.quality_input.text() or 85)
+            recursive = self.recursive_checkbox.isChecked()
             
             if max_width <= 0 or max_height <= 0:
                 raise ValueError("Dimensions must be positive numbers")
@@ -268,8 +323,9 @@ class ImageOptimizerWindow(QMainWindow):
             self.show_error(f"Invalid input: {str(e)}")
             return
 
-        # Count total images
-        image_files = [f for f in os.listdir(directory) if is_image_file(f)]
+        # Get all image files (potentially recursively)
+        image_files = self.get_all_image_files(directory, recursive)
+        
         total_images = len(image_files)
         
         if total_images == 0:
@@ -277,25 +333,29 @@ class ImageOptimizerWindow(QMainWindow):
             return
 
         processed = 0
+        errors = 0
         self.progress_bar.setMaximum(total_images)
         self.progress_bar.setValue(0)
 
-        for filename in image_files:
-            input_path = os.path.join(directory, filename)
-            output_path = os.path.join(directory, f"optimized_{filename}")
+        for input_path, rel_path in image_files:
+            # Create output path preserving directory structure
+            output_path = os.path.join(directory, "optimized", rel_path)
             
             result = optimize_image(input_path, output_path, max_width, max_height, 
                                   quality, self.webp_checkbox.isChecked())
             
             if result is not True:
-                self.show_error(f"Error processing {filename}: {result}")
+                self.show_error(f"Error processing {rel_path}: {result}")
+                errors += 1
             
             processed += 1
             self.progress_bar.setValue(processed)
             self.status_label.setText(f"Processing: {processed}/{total_images}")
             QApplication.processEvents()
 
-        self.show_info(f"Optimized {processed} images!")
+        success_count = processed - errors
+        self.show_info(f"Optimized {success_count} images successfully" + 
+                      (f", {errors} errors" if errors > 0 else ""))
         self.status_label.setText("Ready")
         self.progress_bar.setValue(0)
 
