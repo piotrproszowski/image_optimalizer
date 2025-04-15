@@ -14,58 +14,146 @@ from PyQt5.QtCore import Qt, QMimeData, QSize
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QFontMetrics
 
 def optimize_image(input_path, output_path, max_width, max_height, quality, 
-                   convert_to_webp=False, crop_enabled=False, crop_width=None, crop_height=None):
-    """Optimize the image by optionally cropping, resizing, and optionally converting to webp format."""
+                   output_format="original", crop_enabled=False, crop_width=None, crop_height=None):
+    """Optimize image: crop, resize, change format, and save."""
     try:
+        # Ensure output directory exists BEFORE opening image
+        # This prevents holding the input file open if directory creation fails
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
         with Image.open(input_path) as img:
+            # Ensure image is in a mode compatible with target format if needed
+            original_mode = img.mode
             img_width, img_height = img.size
 
             # --- Cropping Logic ---
             if crop_enabled and crop_width is not None and crop_height is not None:
-                # Ensure crop dimensions are positive and not larger than the image
                 crop_width = min(abs(crop_width), img_width)
                 crop_height = min(abs(crop_height), img_height)
-
                 if crop_width > 0 and crop_height > 0:
-                    # Calculate coordinates for center crop
                     left = (img_width - crop_width) / 2
                     top = (img_height - crop_height) / 2
                     right = (img_width + crop_width) / 2
                     bottom = (img_height + crop_height) / 2
-                    
-                    # Perform crop
                     img = img.crop((int(left), int(top), int(right), int(bottom)))
-            # --- End Cropping Logic ---
+                    img_width, img_height = img.size # Update dimensions after crop
 
-            # Resize the (potentially cropped) image
-            img.thumbnail((max_width, max_height))
+            # --- Resizing Logic ---
+            # Determine target dimensions, use original if max is -1 or invalid
+            target_width = max_width if isinstance(max_width, int) and max_width > 0 else img_width
+            target_height = max_height if isinstance(max_height, int) and max_height > 0 else img_height
             
-            if convert_to_webp:
-                # Ensure the output path ends with .webp if conversion is enabled
-                base, _ = os.path.splitext(output_path)
-                output_path = base + ".webp"
-            else:
-                # Ensure the output path matches the original extension if not converting
+            # Use thumbnail only if target size is smaller than current size
+            if target_width < img_width or target_height < img_height:
+                 # Use LANCZOS (formerly ANTIALIAS) for potentially better quality resize
+                 try:
+                     img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS) 
+                 except AttributeError: # Fallback for older Pillow versions
+                     img.thumbnail((target_width, target_height), Image.ANTIALIAS)
+
+            # --- Determine Output Path and Format ---
+            base, _ = os.path.splitext(output_path)
+            save_format = str(output_format).lower() # Ensure lowercase string
+            
+            if save_format == "original":
+                # Use original extension from input path
                 _, ext = os.path.splitext(input_path)
-                base, _ = os.path.splitext(output_path)
-                output_path = base + ext.lower() # Use original extension
+                output_path = base + ext.lower()
+                # Infer format from extension for saving
+                ext_lower = ext.lower()
+                if ext_lower in (".jpg", ".jpeg"): save_format = "jpeg"
+                elif ext_lower == ".png": save_format = "png"
+                elif ext_lower == ".webp": save_format = "webp"
+                # Add other formats if needed (bmp, gif, tiff?) - default to original PIL format
+                else: 
+                    try:
+                        save_format = img.format # Use PIL's detected format
+                        if not save_format: # If format is None
+                             raise ValueError("Could not detect original format")
+                    except Exception:
+                         # Fallback if format detection fails - maybe default to PNG?
+                         return f"Could not determine original save format for {os.path.basename(input_path)}"
+            elif save_format in ["webp", "jpg", "jpeg", "png"]:
+                 # Use the specified format's extension
+                 # Handle jpg/jpeg case
+                 file_ext = ".jpg" if save_format == "jpeg" else ("." + save_format)
+                 output_path = base + file_ext
+                 if save_format == "jpg": save_format = "jpeg" # Use JPEG for PIL
+            else:
+                 return f"Unsupported output format specified: {output_format}"
+
+            # --- Prepare Save Arguments and Handle Transparency ---
+            save_kwargs = {}
+            img_to_save = img # Start with the potentially resized/cropped image
+
+            # Handle transparency for formats that don't support it (like JPEG)
+            if save_format == "jpeg" and img_to_save.mode in ('RGBA', 'LA', 'P'):
+                # Create a white background image
+                background = Image.new("RGB", img_to_save.size, (255, 255, 255))
+                # Paste the image onto the background using the alpha channel as mask
+                try:
+                    # If mode is P (palette), convert to RGBA first to get alpha
+                    if img_to_save.mode == 'P': 
+                        img_to_save = img_to_save.convert("RGBA")
+                    background.paste(img_to_save, mask=img_to_save.split()[-1]) 
+                    img_to_save = background # Save the flattened image
+                except IndexError: # Handle cases like LA where split might not have enough channels
+                    img_to_save = img_to_save.convert("RGB") # Fallback to simple conversion
+                except Exception: 
+                     # Fallback: just convert to RGB, losing transparency
+                     img_to_save = img_to_save.convert("RGB")
+            else:
+                # Handle transparency for formats that support it (like WebP)
+                if save_format == "webp" and img_to_save.mode in ('RGBA', 'LA'):
+                    pass # Pillow handles RGBA correctly with 'lossless' or by setting background
+                elif save_format == "png" and img_to_save.mode in ('RGBA', 'LA'):
+                    # Pillow's PNG saver handles RGBA correctly with 'lossless' or by setting background
+                    pass # Pillow attempts to handle transparency
+                else:
+                    # For other formats, just convert to RGB, losing transparency
+                    img_to_save = img_to_save.convert("RGB")
+
+            # Set format-specific save options
+            pil_save_format = save_format.upper() # PIL expects uppercase format string
             
-            # Save the optimized image
-            # Handle potential transparency for PNG -> WebP conversion
-            save_kwargs = {'optimize': True, 'quality': quality}
-            if convert_to_webp and img.mode in ('RGBA', 'LA'):
-                 # Pillow's WebP saver handles RGBA correctly with 'lossless' or by setting background
-                 # For lossy, transparency is tricky. Let's try saving as is, might need adjustments
-                 pass # Pillow attempts to handle transparency
+            if pil_save_format == "JPEG":
+                save_kwargs['quality'] = quality
+                save_kwargs['optimize'] = True
+                save_kwargs['progressive'] = True # Often good for web jpegs
+            elif pil_save_format == "PNG":
+                save_kwargs['optimize'] = True
+                # You could add compress_level: save_kwargs['compress_level'] = 6 # 0-9
+            elif pil_save_format == "WEBP":
+                save_kwargs['quality'] = quality
+                # Lossless is an option for WebP, might depend on quality/user choice later
+                save_kwargs['method'] = 6 # 0 (fastest) to 6 (slowest, best compression)
+                # Handle potential Pillow version differences in RGBA WebP saving
+                try:
+                    # This check might not be strictly necessary in recent Pillow versions
+                    if img_to_save.mode == 'RGBA':
+                         pass # Assume Pillow handles RGBA correctly
+                    img_to_save.save(output_path, format=pil_save_format, **save_kwargs)
+                except OSError as webp_e:
+                    # Pillow might raise OSError if RGBA save fails in some versions/configs
+                    if 'cannot write mode RGBA' in str(webp_e):
+                         # Fallback: convert to RGB before saving, losing transparency
+                         img_rgb = img_to_save.convert("RGB")
+                         img_rgb.save(output_path, format=pil_save_format, **save_kwargs)
+                    else:
+                         raise # Re-raise other OS errors
+                return True # Return early for WebP after specific save logic
             
-            img.save(output_path, **save_kwargs)
+            # --- Save the image (for non-WebP formats) ---
+            img_to_save.save(output_path, format=pil_save_format, **save_kwargs)
+            
         return True
     except UnidentifiedImageError:
         return f"Cannot identify image file: {os.path.basename(input_path)}"
+    except ValueError as ve: # Catch potential Pillow value errors (e.g., invalid quality)
+         return f"Image library error for {os.path.basename(input_path)}: {ve}"
     except Exception as e:
-        # Provide more specific error feedback
-        return f"Error processing {os.path.basename(input_path)}: {type(e).__name__} - {str(e)}"
+        # Add more context to the error message
+        return f"Error processing {os.path.basename(input_path)} (Format: {output_format}): {type(e).__name__} - {str(e)}"
 
 def is_image_file(filename):
     """Check if a file is an image based on its extension."""
@@ -119,11 +207,11 @@ class ImageOptimizerWindow(QMainWindow):
                     'overwrite': app.style().standardIcon(QStyle.SP_DialogApplyButton), # Or SP_DialogSaveButton
                     'folder': app.style().standardIcon(QStyle.SP_DirOpenIcon),
                     'crop': app.style().standardIcon(QStyle.SP_FileDialogListView), # Alternative crop icon
-                    'convert': app.style().standardIcon(QStyle.SP_ArrowForward), # Conversion arrow?
                     'quality': app.style().standardIcon(QStyle.SP_FileDialogDetailedView), # Icon for quality
                     'browse': app.style().standardIcon(QStyle.SP_DialogOpenButton),
                     'info': app.style().standardIcon(QStyle.SP_MessageBoxInformation), # For tooltips? Not directly used
-                    'warning': app.style().standardIcon(QStyle.SP_MessageBoxWarning) # For tooltips?
+                    'warning': app.style().standardIcon(QStyle.SP_MessageBoxWarning), # For tooltips?
+                    'format': app.style().standardIcon(QStyle.SP_ComputerIcon) # Icon for format dropdown
                 }
             else:
                 self.is_dark_mode = False
@@ -250,43 +338,52 @@ class ImageOptimizerWindow(QMainWindow):
         # --- Output & Scope Group ---
         output_scope_group = QGroupBox("Output & Scope")
         output_scope_group.setToolTip("Configure output format, file handling, and folder scope.")
-        output_scope_layout = QHBoxLayout(output_scope_group)
+        output_scope_layout = QVBoxLayout(output_scope_group) # Changed to QVBoxLayout for format row
         output_scope_layout.setSpacing(10)
 
-        # WebP Button
-        self.webp_button = QPushButton("Convert to WebP")
-        self.webp_button.setCheckable(True)
-        self.webp_button.setChecked(True)
-        self.webp_button.setToolTip("Convert output images to the WebP format (cannot be used with 'Overwrite Originals').")
-        if 'convert' in self.style_icons:
-             self.webp_button.setIcon(self.style_icons['convert'])
-             self.webp_button.setIconSize(QSize(16, 16))
-        self.webp_button.toggled.connect(self._update_option_states)
-        output_scope_layout.addWidget(self.webp_button)
+        # Output Format Row
+        format_layout = QHBoxLayout() # New layout for format selection
+        format_label = QLabel("Output Format:")
+        if 'format' in self.style_icons: 
+             try:
+                 # Attempt to set pixmap, might fail depending on icon validity/context
+                 pixmap = self.style_icons['format'].pixmap(16,16) # Try getting pixmap
+                 format_label.setPixmap(pixmap)
+             except Exception: # Catch potential errors during pixmap creation
+                 pass # Ignore if icon cannot be set
+        format_label.setToolTip("Choose the file format for the optimized images.")
+        self.output_format_combo = QComboBox() # NEW ComboBox
+        self.output_format_combo.addItems(["Original", "WebP", "JPG", "PNG"]) # Standard formats
+        self.output_format_combo.setCurrentText("WebP") # Default to WebP
+        self.output_format_combo.setToolTip("Select output format. 'Original' keeps the source format.\\nNote: Overwrite is only possible with 'Original' format.")
+        self.output_format_combo.currentTextChanged.connect(self._update_option_states) # Connect signal
+        format_layout.addWidget(format_label)
+        format_layout.addWidget(self.output_format_combo, 1) # Allow combo to expand
+        output_scope_layout.addLayout(format_layout) # Add format row first
 
-        # Overwrite Button
-        self.overwrite_button = QPushButton("Overwrite Originals")
+        # Overwrite / Recursive Row
+        overwrite_recursive_layout = QHBoxLayout() # Layout for the buttons below format
+        overwrite_recursive_layout.setSpacing(10)
+        
+        # Overwrite Button (No functional changes, tooltip updated)
+        self.overwrite_button = QPushButton("Overwrite Originals") 
         self.overwrite_button.setCheckable(True)
         self.overwrite_button.setChecked(False)
-        # Tooltip updated slightly for clarity
-        self.overwrite_button.setToolTip("Replace original files with optimized versions (cannot be used with 'Convert to WebP').\\nWARNING: This action cannot be undone.")
-        if 'overwrite' in self.style_icons:
-             self.overwrite_button.setIcon(self.style_icons['overwrite'])
-             self.overwrite_button.setIconSize(QSize(16, 16))
-        self.overwrite_button.toggled.connect(self._update_option_states)
-        output_scope_layout.addWidget(self.overwrite_button)
+        self.overwrite_button.setToolTip("Replace original files (only possible if output format is 'Original').\\nWARNING: This action cannot be undone.") 
+        if 'overwrite' in self.style_icons: self.overwrite_button.setIcon(self.style_icons['overwrite'])
+        self.overwrite_button.toggled.connect(self._update_option_states) # Keep connection
+        overwrite_recursive_layout.addWidget(self.overwrite_button)
         
-        output_scope_layout.addStretch(1) # Push recursive button to the right
+        overwrite_recursive_layout.addStretch(1) 
 
-        # Recursive Button
-        self.recursive_button = QPushButton("Process Subfolders")
+        # Recursive Button (No functional changes)
+        self.recursive_button = QPushButton("Process Subfolders") 
         self.recursive_button.setCheckable(True)
         self.recursive_button.setChecked(True)
         self.recursive_button.setToolTip("Include images found in subfolders of the selected input folder.")
-        if 'folder' in self.style_icons:
-             self.recursive_button.setIcon(self.style_icons['folder'])
-             self.recursive_button.setIconSize(QSize(16, 16))
-        output_scope_layout.addWidget(self.recursive_button)
+        if 'folder' in self.style_icons: self.recursive_button.setIcon(self.style_icons['folder'])
+        overwrite_recursive_layout.addWidget(self.recursive_button)
+        output_scope_layout.addLayout(overwrite_recursive_layout) # Add button row
 
         layout.addWidget(output_scope_group)
         self._update_option_states() # Set initial states
@@ -319,38 +416,34 @@ class ImageOptimizerWindow(QMainWindow):
         self.apply_styles() # Apply after all widgets are created
 
     def _update_option_states(self):
-        """Enable/disable WebP and Overwrite buttons based on each other's state."""
-        # Block signals to prevent infinite loops during state changes
-        self.overwrite_button.blockSignals(True)
-        self.webp_button.blockSignals(True)
+        """Enable/disable Overwrite button based on Output Format selection."""
+        # Block signals to prevent loops (important when multiple widgets trigger this)
+        # Ensure widgets exist before blocking signals
+        if hasattr(self, 'overwrite_button'): self.overwrite_button.blockSignals(True)
+        if hasattr(self, 'output_format_combo'): self.output_format_combo.blockSignals(True)
 
         try:
-            if self.overwrite_button.isChecked():
-                # If overwrite is ON, turn OFF WebP and disable it
-                if self.webp_button.isChecked():
-                    self.webp_button.setChecked(False) # Turn off WebP
-                self.webp_button.setEnabled(False)
-                self.webp_button.setToolTip("Disabled because 'Overwrite Originals' is active.")
-            else:
-                # If overwrite is OFF, enable WebP
-                self.webp_button.setEnabled(True)
-                self.webp_button.setToolTip("Convert output images to the WebP format (cannot be used with 'Overwrite Originals').")
+            # Check if output_format_combo exists before accessing it
+            if hasattr(self, 'output_format_combo'):
+                selected_format = self.output_format_combo.currentText()
+                is_original_format = (selected_format == "Original")
 
-            if self.webp_button.isChecked():
-                # If WebP is ON, turn OFF Overwrite and disable it
-                if self.overwrite_button.isChecked():
-                    self.overwrite_button.setChecked(False) # Turn off Overwrite
-                self.overwrite_button.setEnabled(False)
-                self.overwrite_button.setToolTip("Disabled because 'Convert to WebP' is active.")
-            else:
-                # If WebP is OFF, enable Overwrite
-                self.overwrite_button.setEnabled(True)
-                # Tooltip for overwrite when enabled
-                self.overwrite_button.setToolTip("Replace original files with optimized versions (cannot be used with 'Convert to WebP').\\nWARNING: This action cannot be undone.")
+                # Check if overwrite_button exists before accessing it
+                if hasattr(self, 'overwrite_button'):
+                    if not is_original_format:
+                        # If format is NOT Original, turn OFF Overwrite and disable it
+                        if self.overwrite_button.isChecked():
+                            self.overwrite_button.setChecked(False) # Turn off Overwrite
+                        self.overwrite_button.setEnabled(False)
+                        self.overwrite_button.setToolTip("Disabled because output format is not 'Original'.")
+                    else:
+                        # If format IS Original, enable Overwrite button
+                        self.overwrite_button.setEnabled(True)
+                        self.overwrite_button.setToolTip("Replace original files (only possible if output format is 'Original').\\nWARNING: This action cannot be undone.")
         finally:
-            # Always re-enable signals
-            self.overwrite_button.blockSignals(False)
-            self.webp_button.blockSignals(False)
+            # Always re-enable signals if widgets exist
+            if hasattr(self, 'overwrite_button'): self.overwrite_button.blockSignals(False)
+            if hasattr(self, 'output_format_combo'): self.output_format_combo.blockSignals(False)
 
     def apply_styles(self):
         # --- iOS Style Attempt ---
@@ -592,21 +685,22 @@ class ImageOptimizerWindow(QMainWindow):
                 if not (0 < crop_width): raise ValueError("Crop Width must be positive")
                 if not (0 < crop_height): raise ValueError("Crop Height must be positive")
 
-            # Processing options - check button states
-            recursive = self.recursive_button.isChecked()
-            convert_to_webp = self.webp_button.isChecked()
+            # Read selected output format and overwrite options
+            output_format = self.output_format_combo.currentText().lower() # Get selected format
             overwrite_originals = self.overwrite_button.isChecked()
+            recursive = self.recursive_button.isChecked()
 
-            # Consistency check (already handled by _update_option_states)
-            if overwrite_originals and convert_to_webp:
-                 self.show_error("Configuration error: Cannot Overwrite and Convert to WebP.")
+            # Consistency check (now based on format)
+            if overwrite_originals and output_format != "original": 
+                 # This state should ideally be prevented by _update_option_states
+                 self.show_error("Configuration error: Can only overwrite originals if output format is 'Original'.")
                  return 
                  
         except ValueError as e:
             self.show_error(f"Invalid input: {str(e)}")
             return
         except Exception as e: 
-             self.show_error(f"An unexpected error occurred during setup: {str(e)}")
+             self.show_error(f"Setup error: {str(e)}")
              return
 
         # Get image files (error handling remains)
@@ -616,7 +710,7 @@ class ImageOptimizerWindow(QMainWindow):
              self.show_error(str(e)) 
              return
         except Exception as e:
-             self.show_error(f"Error reading directory contents: {str(e)}")
+             self.show_error(f"Directory read error: {str(e)}")
              return
 
         total_images = len(image_files)
@@ -682,12 +776,18 @@ class ImageOptimizerWindow(QMainWindow):
             else: 
                  current_max_width, current_max_height = self.resolution_presets[selected_resolution]
 
-            # Call optimize_image (remains the same)
+            # Call optimize_image with the selected output format
+            # Pass the potentially temporary output path; optimize_image will adjust extension
             result = optimize_image(
-                input_path, output_path, 
-                current_max_width, current_max_height, quality, 
-                convert_to_webp, 
-                crop_enabled, crop_width, crop_height
+                input_path, 
+                output_path, # Pass base output path
+                current_max_width, 
+                current_max_height, 
+                quality, 
+                output_format=output_format, # Pass selected format
+                crop_enabled=crop_enabled, 
+                crop_width=crop_width, 
+                crop_height=crop_height
             )
             
             processed += 1
