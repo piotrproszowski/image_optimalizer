@@ -200,11 +200,9 @@ class ImageOptimizerWindow(QMainWindow):
         settings_layout.addLayout(resolution_layout)
         self.on_resolution_changed(self.resolution_combo.currentText())
 
-        # Crop & Quality Row
+        # Crop Row
         crop_layout = QHBoxLayout()
         crop_layout.setSpacing(10)
-
-        # Crop Button & Inputs
         self.crop_button = QPushButton("Center Crop")
         self.crop_button.setCheckable(True)
         self.crop_button.setToolTip("Enable to crop images to the specified dimensions from the center before resizing.")
@@ -228,10 +226,10 @@ class ImageOptimizerWindow(QMainWindow):
         crop_dimensions_layout.addWidget(QLabel("H:"))
         crop_dimensions_layout.addWidget(self.crop_height_input)
         self.crop_dimensions_widget.setVisible(False)
-        crop_layout.addWidget(self.crop_dimensions_widget)
-        crop_layout.addStretch(1) # Push quality to the right
+        crop_layout.addWidget(self.crop_dimensions_widget, 1) # Allow inputs to expand
+        settings_layout.addLayout(crop_layout) # Add crop layout to settings group
 
-        # Quality
+        # Quality Row - Moved to its own row
         quality_layout = QHBoxLayout()
         quality_layout.setSpacing(10)
         quality_label = QLabel("Quality:")
