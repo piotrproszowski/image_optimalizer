@@ -1,34 +1,67 @@
 # Image Optimizer
 
-A simple Python tool for batch image optimization.
-This program allows you to resize multiple images at once while maintaining aspect ratio, optimize their quality, and optionally convert them to WebP format.
+Narzędzie do wsadowej optymalizacji obrazów z GUI.
 
-## Quick Start: Using Compiled Version
+## Szybki Start
 
-- Download the appropriate version from the `dist` folder:
-  - `image_optimizer.exe` for Windows
-  - `image_optimizer.app` for macOS
-- No installation or Python required
-- Double-click to run
-  - On macOS, you might need to use: `chmod +x image_optimizer` to make it executable
+### Gotowe Aplikacje (bez instalacji)
 
-## Features
+1. Pobierz z folderu `dist/`:
+   - **macOS ARM:** `image_optimizer.app` (M1/M2/M3)
+   - **Windows x64:** `image_optimizer.exe`
+2. Kliknij dwukrotnie i uruchom
+3. Wybierz folder LUB pojedynczy plik obrazu
 
-- Batch image processing
-- Smart resolution presets:
-  - HD (1280x720)
-  - Full HD (1920x1080)
-  - 2K (2560x1440)
-  - 4K (3840x2160)
-  - Custom dimensions
-- Maintains aspect ratio during resizing
-- Adjustable image quality
-- Optional WebP conversion
-- Supports multiple image formats:
+**macOS:** Przy pierwszym uruchomieniu: prawy klik → Otwórz → Otwórz  
+**Windows:** Windows Defender może ostrzegać - kliknij "Więcej informacji" → "Uruchom mimo to"
+
+---
+
+## Budowanie
+
+### macOS
+```bash
+./build_macos.sh
+```
+Wynik: `dist/image_optimizer.app`
+
+### Windows
+```cmd
+build_windows.bat
+```
+Wynik: `dist\image_optimizer.exe`
+
+---
+
+## Funkcje
+
+- **Pojedyncze pliki** lub **wsadowe przetwarzanie** folderów
+- **Presety rozdzielczości:** HD, Full HD, 2K, 4K, Custom, Original
+- **Kadrowanie** do wybranych wymiarów
+- **Kompresja** z regulowaną jakością (1-100)
+- **Konwersja formatów:** JPEG, PNG, WebP
+- **Drag & Drop** dla plików i folderów
+- **Obsługa formatów:**
   - JPG/JPEG
-  - PNG
-  - GIF
-  - BMP
-  - TIFF
-  - WebP
-- Automatic dark/light theme detection
+  - PNG (z przezroczystością)
+  - WebP (z przezroczystością)
+  - HEIC/HEIF (zdjęcia z iPhone)
+  - GIF, BMP, TIFF
+- **Rekursywne przetwarzanie** podfolderów
+- **Automatyczny motyw** jasny/ciemny
+
+---
+
+## Wymagania
+
+**Gotowe aplikacje:** macOS 11+ lub Windows 10+
+
+**Budowanie:**
+- Python 3.8+
+- Zależności: `pip install -r requirements.txt`
+
+---
+
+## Autor
+
+Piotr Proszowski
