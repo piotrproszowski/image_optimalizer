@@ -8,7 +8,15 @@ import sys
 
 import pillow_heif
 from PIL import Image, UnidentifiedImageError
-from PyQt5.QtCore import QMimeData, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import (
+    QEasingCurve,
+    QMimeData,
+    QPropertyAnimation,
+    QSize,
+    Qt,
+    pyqtProperty,
+    pyqtSignal,
+)
 from PyQt5.QtGui import (
     QColor,
     QDragEnterEvent,
@@ -36,7 +44,23 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-pillow_heif.register_heif_opener()
+
+def _lazy_init_heif():
+    """Lazy initialization of HEIF support to speed up startup."""
+    import pillow_heif
+
+    pillow_heif.register_heif_opener()
+
+
+_heif_initialized = False
+
+
+def _ensure_heif_support():
+    """Ensure HEIF support is initialized before processing images."""
+    global _heif_initialized
+    if not _heif_initialized:
+        _lazy_init_heif()
+        _heif_initialized = True
 
 
 def optimize_image(
@@ -51,6 +75,8 @@ def optimize_image(
     crop_height=None,
 ):
     """Optimize image: crop, resize, change format, and save."""
+    _ensure_heif_support()
+
     try:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -236,8 +262,22 @@ class ToggleSwitch(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._checked = False
+        self._thumb_position = 0.0
         self.setFixedSize(50, 28)
         self.setCursor(Qt.PointingHandCursor)
+
+        self._animation = QPropertyAnimation(self, b"thumb_position", self)
+        self._animation.setEasingCurve(QEasingCurve.InOutCubic)
+        self._animation.setDuration(200)
+
+    def _get_thumb_position(self):
+        return self._thumb_position
+
+    def _set_thumb_position(self, position):
+        self._thumb_position = position
+        self.update()
+
+    thumb_position = pyqtProperty(float, _get_thumb_position, _set_thumb_position)
 
     def paintEvent(self, event):
         from PyQt5.QtCore import QRectF
@@ -258,10 +298,9 @@ class ToggleSwitch(QWidget):
         painter.drawRoundedRect(track_rect, self.height() / 2, self.height() / 2)
 
         thumb_radius = (self.height() - 6) / 2
-        if self._checked:
-            thumb_x = self.width() - thumb_radius - 3
-        else:
-            thumb_x = thumb_radius + 3
+        left_pos = thumb_radius + 3
+        right_pos = self.width() - thumb_radius - 3
+        thumb_x = left_pos + (right_pos - left_pos) * self._thumb_position
         thumb_y = self.height() / 2
 
         painter.setBrush(thumb_color)
@@ -275,7 +314,9 @@ class ToggleSwitch(QWidget):
 
     def mousePressEvent(self, event):
         self._checked = not self._checked
-        self.update()
+        self._animation.setStartValue(self._thumb_position)
+        self._animation.setEndValue(1.0 if self._checked else 0.0)
+        self._animation.start()
         self.toggled.emit(self._checked)
 
     def isChecked(self):
@@ -284,7 +325,9 @@ class ToggleSwitch(QWidget):
     def setChecked(self, checked):
         if self._checked != checked:
             self._checked = checked
-            self.update()
+            self._animation.setStartValue(self._thumb_position)
+            self._animation.setEndValue(1.0 if self._checked else 0.0)
+            self._animation.start()
 
 
 class ImageOptimizerWindow(QMainWindow):
