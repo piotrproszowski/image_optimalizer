@@ -77,6 +77,20 @@ def optimize_image(
     """Optimize image: crop, resize, change format, and save."""
     _ensure_heif_support()
 
+    if quality < 1 or quality > 100:
+        return f"Invalid quality value: {quality} (must be 1-100)"
+
+    if crop_enabled:
+        if crop_width and (crop_width < 1 or crop_width > 50000):
+            return f"Invalid crop width: {crop_width} (must be 1-50000)"
+        if crop_height and (crop_height < 1 or crop_height > 50000):
+            return f"Invalid crop height: {crop_height} (must be 1-50000)"
+
+    if max_width > 0 and (max_width < 1 or max_width > 50000):
+        return f"Invalid width: {max_width} (must be 1-50000)"
+    if max_height > 0 and (max_height < 1 or max_height > 50000):
+        return f"Invalid height: {max_height} (must be 1-50000)"
+
     try:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -84,12 +98,12 @@ def optimize_image(
             original_mode = img.mode
             img_width, img_height = img.size
 
-            if crop_enabled and crop_width is not None and crop_height is not None:
-                crop_width = min(abs(crop_width), img_width)
-                crop_height = min(abs(crop_height), img_height)
-                if crop_width > 0 and crop_height > 0:
-                    left = (img_width - crop_width) / 2
-                    top = (img_height - crop_height) / 2
+            if crop_enabled and crop_width and crop_height:
+                actual_crop_width = min(crop_width, img_width)
+                actual_crop_height = min(crop_height, img_height)
+                if actual_crop_width > 0 and actual_crop_height > 0:
+                    left = (img_width - actual_crop_width) / 2
+                    top = (img_height - actual_crop_height) / 2
                     right = (img_width + crop_width) / 2
                     bottom = (img_height + crop_height) / 2
                     img = img.crop((int(left), int(top), int(right), int(bottom)))
@@ -196,14 +210,20 @@ def optimize_image(
             img_to_save.save(output_path, format=pil_save_format, **save_kwargs)
 
         return True
-    except UnidentifiedImageError:
-        return f"Cannot identify image file: {os.path.basename(input_path)}"
-    except (
-        ValueError
-    ) as ve:  # Catch potential Pillow value errors (e.g., invalid quality)
-        return f"Image library error for {os.path.basename(input_path)}: {ve}"
+    except PermissionError:
+        return f"Cannot access file (check permissions): {os.path.basename(input_path)}"
+    except OSError:
+        return f"File system error: {os.path.basename(input_path)}"
+    except MemoryError:
+        return f"Image too large for available memory: {os.path.basename(input_path)}"
+    except ValueError:
+        return f"Invalid image data: {os.path.basename(input_path)}"
     except Exception as e:
-        return f"Error processing {os.path.basename(input_path)} (Format: {output_format}): {type(e).__name__} - {str(e)}"
+        if "UnidentifiedImageError" in str(type(e).__name__):
+            return f"Cannot identify image file: {os.path.basename(input_path)}"
+        return (
+            f"Error processing {os.path.basename(input_path)}: Unknown error occurred"
+        )
 
 
 def is_image_file(filename):
@@ -313,6 +333,9 @@ class ToggleSwitch(QWidget):
         )
 
     def mousePressEvent(self, event):
+        if self._animation.state() == QPropertyAnimation.Running:
+            return
+
         self._checked = not self._checked
         self._animation.setStartValue(self._thumb_position)
         self._animation.setEndValue(1.0 if self._checked else 0.0)
@@ -619,11 +642,12 @@ class ImageOptimizerWindow(QMainWindow):
                 is_original_format = selected_format == "Original"
 
                 if hasattr(self, "overwrite_switch"):
+                    if hasattr(self.overwrite_switch, "_animation"):
+                        self.overwrite_switch._animation.stop()
+
                     if not is_original_format:
                         if self.overwrite_switch.isChecked():
-                            self.overwrite_switch.setChecked(
-                                False
-                            )  # Turn off Overwrite
+                            self.overwrite_switch.setChecked(False)
                         self.overwrite_switch.setEnabled(False)
                         self.overwrite_switch.setToolTip(
                             "Disabled because output format is not 'Original'."
@@ -822,9 +846,14 @@ class ImageOptimizerWindow(QMainWindow):
         is_overwriting = self.overwrite_switch.isChecked()  # Check switch state
         optimized_dir_name = "optimized"  # Define once
 
+        def handle_walk_error(error):
+            pass
+
         try:
             if recursive:
-                for root, dirs, files in os.walk(directory, topdown=True):
+                for root, dirs, files in os.walk(
+                    directory, topdown=True, onerror=handle_walk_error
+                ):
                     if not is_overwriting and optimized_dir_name in dirs:
                         dirs.remove(optimized_dir_name)
 
@@ -834,7 +863,7 @@ class ImageOptimizerWindow(QMainWindow):
                             if os.path.isfile(full_path) and is_image_file(filename):
                                 rel_path = os.path.relpath(full_path, directory)
                                 image_files.append((full_path, rel_path))
-                        except Exception:
+                        except (OSError, PermissionError):
                             pass
             else:
                 optimized_dir_path = os.path.join(directory, optimized_dir_name)
