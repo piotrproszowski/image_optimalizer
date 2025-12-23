@@ -12,6 +12,7 @@ from PyQt5.QtCore import (
     QEasingCurve,
     QMimeData,
     QPropertyAnimation,
+    QSettings,
     QSize,
     Qt,
     pyqtProperty,
@@ -26,6 +27,7 @@ from PyQt5.QtGui import (
     QPen,
 )
 from PyQt5.QtWidgets import (
+    QAction,
     QApplication,
     QComboBox,
     QFileDialog,
@@ -34,6 +36,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -283,12 +286,14 @@ class ToggleSwitch(QWidget):
         super().__init__(parent)
         self._checked = False
         self._thumb_position = 0.0
+        self._is_initializing = True
         self.setFixedSize(50, 28)
         self.setCursor(Qt.PointingHandCursor)
 
         self._animation = QPropertyAnimation(self, b"thumb_position", self)
         self._animation.setEasingCurve(QEasingCurve.InOutCubic)
         self._animation.setDuration(200)
+        self._is_initializing = False
 
     def _get_thumb_position(self):
         return self._thumb_position
@@ -348,24 +353,34 @@ class ToggleSwitch(QWidget):
     def setChecked(self, checked):
         if self._checked != checked:
             self._checked = checked
-            self._animation.setStartValue(self._thumb_position)
-            self._animation.setEndValue(1.0 if self._checked else 0.0)
-            self._animation.start()
+            target_position = 1.0 if self._checked else 0.0
+
+            if self._is_initializing or not self.isVisible():
+                self._thumb_position = target_position
+                self.update()
+            else:
+                self._animation.setStartValue(self._thumb_position)
+                self._animation.setEndValue(target_position)
+                self._animation.start()
 
 
 class ImageOptimizerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image Optimizer")
-        self.setGeometry(100, 100, 600, 620)  # Slightly taller for quality row
+        self.setGeometry(100, 100, 600, 620)
+
+        self.settings = QSettings("PiotrProszowski", "ImageOptimizer")
+        self.is_dark_mode = self.settings.value("theme/dark_mode", True, type=bool)
 
         self.author_label = QLabel("© 2024 Piotr Proszowski")
         self.author_label.setAlignment(Qt.AlignRight)
 
+        self._create_menu_bar()
+
         app = QApplication.instance()
         try:
             if app:
-                self.is_dark_mode = app.palette().window().color().lightness() < 128
                 self.style_icons = {
                     "save": app.style().standardIcon(QStyle.SP_DialogSaveButton),
                     "overwrite": app.style().standardIcon(
@@ -393,7 +408,6 @@ class ImageOptimizerWindow(QMainWindow):
                 self.is_dark_mode = False
                 self.style_icons = {}  # No icons if no app instance
         except Exception:
-            self.is_dark_mode = False
             self.style_icons = {}
 
         main_widget = QWidget()
@@ -413,21 +427,12 @@ class ImageOptimizerWindow(QMainWindow):
         self.folder_input.setToolTip(
             "Path to a folder or single image file. You can also drag and drop here."
         )
-        browse_folder_button = QPushButton("Folder")
-        browse_folder_button.setToolTip("Open a dialog to select a folder.")
-        if "browse" in self.style_icons:
-            browse_folder_button.setIcon(self.style_icons["browse"])
-        browse_folder_button.clicked.connect(self.browse_folder)
-
-        browse_file_button = QPushButton("File")
-        browse_file_button.setToolTip("Open a dialog to select a single image file.")
-        if "browse" in self.style_icons:
-            browse_file_button.setIcon(self.style_icons["browse"])
-        browse_file_button.clicked.connect(self.browse_file)
+        browse_button = QPushButton("📁 Browse...")
+        browse_button.setToolTip("Select a folder or single image file.")
+        browse_button.clicked.connect(self.browse_smart)
 
         input_layout.addWidget(self.folder_input)
-        input_layout.addWidget(browse_folder_button)
-        input_layout.addWidget(browse_file_button)
+        input_layout.addWidget(browse_button)
         layout.addWidget(input_group)
 
         settings_group = QGroupBox("Processing Settings")
@@ -479,38 +484,48 @@ class ImageOptimizerWindow(QMainWindow):
         settings_layout.addLayout(resolution_layout)
         self.on_resolution_changed(self.resolution_combo.currentText())
 
-        crop_layout = QHBoxLayout()
-        crop_layout.setSpacing(10)
+        crop_main_layout = QVBoxLayout()
+        crop_main_layout.setSpacing(8)
 
-        crop_label = QLabel("Center Crop")
+        crop_toggle_layout = QHBoxLayout()
+        crop_toggle_layout.setSpacing(10)
+
+        crop_label = QLabel("✂️ Crop to Size (center)")
         crop_label.setToolTip(
-            "Enable to crop images to the specified dimensions from the center before resizing."
+            "Enable to crop images to exact dimensions from center before resizing."
         )
-        crop_layout.addWidget(crop_label)
+        crop_toggle_layout.addWidget(crop_label)
 
         self.crop_switch = ToggleSwitch()
         self.crop_switch.setToolTip("Toggle to enable/disable center cropping")
         self.crop_switch.toggled.connect(self.on_crop_toggled)
-        crop_layout.addWidget(self.crop_switch)
+        crop_toggle_layout.addWidget(self.crop_switch)
+        crop_toggle_layout.addStretch(1)
+
+        crop_main_layout.addLayout(crop_toggle_layout)
 
         self.crop_dimensions_widget = QWidget()
         self.crop_dimensions_widget.setToolTip(
             "Define the target width and height for cropping."
         )
         crop_dimensions_layout = QHBoxLayout(self.crop_dimensions_widget)
-        crop_dimensions_layout.setContentsMargins(0, 0, 0, 0)
-        crop_dimensions_layout.setSpacing(5)
+        crop_dimensions_layout.setContentsMargins(20, 0, 0, 0)
+        crop_dimensions_layout.setSpacing(10)
+        crop_dimensions_layout.addWidget(QLabel("Width:"))
         self.crop_width_input = QLineEdit("800")
         self.crop_width_input.setToolTip("Target crop width in pixels.")
+        self.crop_width_input.setFixedWidth(80)
+        crop_dimensions_layout.addWidget(self.crop_width_input)
+        crop_dimensions_layout.addWidget(QLabel("Height:"))
         self.crop_height_input = QLineEdit("800")
         self.crop_height_input.setToolTip("Target crop height in pixels.")
-        crop_dimensions_layout.addWidget(QLabel("W:"))
-        crop_dimensions_layout.addWidget(self.crop_width_input)
-        crop_dimensions_layout.addWidget(QLabel("H:"))
+        self.crop_height_input.setFixedWidth(80)
         crop_dimensions_layout.addWidget(self.crop_height_input)
+        crop_dimensions_layout.addStretch(1)
         self.crop_dimensions_widget.setVisible(False)
-        crop_layout.addWidget(self.crop_dimensions_widget, 1)  # Allow inputs to expand
-        settings_layout.addLayout(crop_layout)  # Add crop layout to settings group
+
+        crop_main_layout.addWidget(self.crop_dimensions_widget)
+        settings_layout.addLayout(crop_main_layout)
 
         quality_layout = QHBoxLayout()
         quality_layout.setSpacing(10)
@@ -663,6 +678,28 @@ class ImageOptimizerWindow(QMainWindow):
             if hasattr(self, "output_format_combo"):
                 self.output_format_combo.blockSignals(False)
 
+    def _create_menu_bar(self):
+        """Create menu bar with theme toggle."""
+        menubar = self.menuBar()
+
+        view_menu = menubar.addMenu("View")
+
+        self.theme_action = QAction(
+            "🌙 Dark Mode" if not self.is_dark_mode else "☀️ Light Mode", self
+        )
+        self.theme_action.setCheckable(False)
+        self.theme_action.triggered.connect(self.toggle_theme)
+        view_menu.addAction(self.theme_action)
+
+    def toggle_theme(self):
+        """Toggle between light and dark theme."""
+        self.is_dark_mode = not self.is_dark_mode
+        self.settings.setValue("theme/dark_mode", self.is_dark_mode)
+        self.theme_action.setText(
+            "🌙 Dark Mode" if not self.is_dark_mode else "☀️ Light Mode"
+        )
+        self.apply_styles()
+
     def apply_styles(self):
         font_family = "System"  # Use system font, closest to San Francisco on macOS
         background_color = "#F2F2F7" if not self.is_dark_mode else "#1C1C1E"
@@ -673,6 +710,10 @@ class ImageOptimizerWindow(QMainWindow):
         control_bg_color = "#FFFFFF" if not self.is_dark_mode else "#2C2C2E"
         control_border_color = "#C6C6C8" if not self.is_dark_mode else "#3A3A3C"
         separator_color = "#D1D1D6" if not self.is_dark_mode else "#38383A"
+        menubar_bg = "#F2F2F7" if not self.is_dark_mode else "#1C1C1E"
+        menubar_text = "#000000" if not self.is_dark_mode else "#FFFFFF"
+        button_hover_color = "#E5E5EA" if not self.is_dark_mode else "#3A3A3C"
+        menu_selected_bg = "#007AFF"
         checked_button_bg_color = (
             "#D1E7FF" if not self.is_dark_mode else "#004080"
         )  # Light blue / Darker blue for checked
@@ -682,6 +723,35 @@ class ImageOptimizerWindow(QMainWindow):
             QMainWindow {{
                 background-color: {background_color};
                 font-family: {font_family};
+            }}
+            QMenuBar {{
+                background-color: {menubar_bg};
+                color: {menubar_text};
+                border-bottom: 1px solid {separator_color};
+                padding: 4px;
+            }}
+            QMenuBar::item {{
+                background-color: transparent;
+                padding: 4px 8px;
+                border-radius: 4px;
+            }}
+            QMenuBar::item:selected {{
+                background-color: {button_hover_color};
+            }}
+            QMenu {{
+                background-color: {control_bg_color};
+                color: {text_color};
+                border: 1px solid {control_border_color};
+                border-radius: 8px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 6px 24px 6px 8px;
+                border-radius: 4px;
+            }}
+            QMenu::item:selected {{
+                background-color: {menu_selected_bg};
+                color: #FFFFFF;
             }}
             QWidget {{ font-family: {font_family}; }}
             QGroupBox {{
@@ -789,20 +859,24 @@ class ImageOptimizerWindow(QMainWindow):
         """)
         self.author_label.setObjectName("AuthorLabel")
 
-    def browse_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Input Folder")
-        if folder:
-            self.folder_input.setText(folder)
-
-    def browse_file(self):
-        file, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Image File",
-            "",
-            "Images (*.jpg *.jpeg *.png *.gif *.bmp *.tiff *.webp *.heic *.heif);;All Files (*)",
+    def browse_smart(self):
+        """Smart browse dialog that handles both files and folders."""
+        dialog = QFileDialog(self)
+        dialog.setWindowTitle("Select Folder or Image File")
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setOption(QFileDialog.ShowDirsOnly, False)
+        dialog.setNameFilter(
+            "Images (*.jpg *.jpeg *.png *.gif *.bmp *.tiff *.webp *.heic *.heif);;All Files (*)"
         )
-        if file:
-            self.folder_input.setText(file)
+
+        if dialog.exec_():
+            selected = dialog.selectedFiles()
+            if selected:
+                path = selected[0]
+                if os.path.isdir(path) or (
+                    os.path.isfile(path) and is_image_file(path)
+                ):
+                    self.folder_input.setText(path)
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
