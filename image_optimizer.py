@@ -879,10 +879,126 @@ class ImageOptimizerWindow(QMainWindow):
                     self.folder_input.setText(path)
 
     def show_error(self, message):
-        QMessageBox.critical(self, "Error", message)
+        """Show styled error dialog."""
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setWindowTitle("Error")
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+
+        if self.is_dark_mode:
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #2C2C2E;
+                    color: #FFFFFF;
+                }
+                QLabel {
+                    color: #FFFFFF;
+                    font-size: 14px;
+                    min-width: 300px;
+                }
+                QPushButton {
+                    background-color: #FF3B30;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #CC2F26;
+                }
+            """)
+        else:
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                QLabel {
+                    color: #000000;
+                    font-size: 14px;
+                    min-width: 300px;
+                }
+                QPushButton {
+                    background-color: #FF3B30;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #CC2F26;
+                }
+            """)
+
+        msg_box.exec_()
 
     def show_info(self, message):
-        QMessageBox.information(self, "Information", message)
+        """Show styled information dialog."""
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setWindowTitle("Success")
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+
+        if self.is_dark_mode:
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #2C2C2E;
+                    color: #FFFFFF;
+                }
+                QLabel {
+                    color: #FFFFFF;
+                    font-size: 14px;
+                    min-width: 300px;
+                }
+                QPushButton {
+                    background-color: #007AFF;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #005ECC;
+                }
+            """)
+        else:
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                QLabel {
+                    color: #000000;
+                    font-size: 14px;
+                    min-width: 300px;
+                }
+                QPushButton {
+                    background-color: #007AFF;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 80px;
+                }
+                QPushButton:hover {
+                    background-color: #005ECC;
+                }
+            """)
+
+        msg_box.exec_()
 
     def on_resolution_changed(self, text):
         is_custom = text == "Custom"
@@ -1180,15 +1296,15 @@ class ImageOptimizerWindow(QMainWindow):
             QApplication.processEvents()
 
         success_count = processed - errors
-        summary_message = f"Optimization complete.\\nSuccessfully processed: {success_count}\\nErrors: {errors}"
+        summary_message = f"Optimization complete.\n\nSuccessfully processed: {success_count}\nErrors: {errors}"
         if errors > 0:
-            detailed_errors = "\\n".join(error_messages)
+            detailed_errors = "\n".join(error_messages)
             try:  # Reuse advanced error box
                 if len(error_messages) > 10:
                     msg_box = QMessageBox(self)
                     msg_box.setIcon(QMessageBox.Warning)
                     msg_box.setWindowTitle("Optimization Report with Errors")
-                    msg_box.setText(summary_message + "\\n\\nError details:")
+                    msg_box.setText(summary_message + "\n\nError details:")
                     scroll = QScrollArea(msg_box)
                     scroll.setWidgetResizable(True)
                     scroll.setMinimumSize(400, 150)
@@ -1235,8 +1351,7 @@ class ImageOptimizerWindow(QMainWindow):
                     msg_box.exec_()
             except Exception as report_e:
                 self.show_error(
-                    summary_message
-                    + f"\\nCould not display detailed errors: {report_e}"
+                    summary_message + f"\nCould not display detailed errors: {report_e}"
                 )
         else:
             self.show_info(summary_message)
