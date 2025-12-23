@@ -8,11 +8,17 @@ import sys
 
 import pillow_heif
 from PIL import Image, UnidentifiedImageError
-from PyQt5.QtCore import QMimeData, QSize, Qt
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QFontMetrics
+from PyQt5.QtCore import QMimeData, QSize, Qt, pyqtSignal
+from PyQt5.QtGui import (
+    QColor,
+    QDragEnterEvent,
+    QDropEvent,
+    QFontMetrics,
+    QPainter,
+    QPen,
+)
 from PyQt5.QtWidgets import (
     QApplication,
-    QCheckBox,
     QComboBox,
     QFileDialog,
     QGroupBox,
@@ -30,7 +36,6 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-# Register HEIC/HEIF format support
 pillow_heif.register_heif_opener()
 
 
@@ -47,16 +52,12 @@ def optimize_image(
 ):
     """Optimize image: crop, resize, change format, and save."""
     try:
-        # Ensure output directory exists BEFORE opening image
-        # This prevents holding the input file open if directory creation fails
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         with Image.open(input_path) as img:
-            # Ensure image is in a mode compatible with target format if needed
             original_mode = img.mode
             img_width, img_height = img.size
 
-            # --- Cropping Logic ---
             if crop_enabled and crop_width is not None and crop_height is not None:
                 crop_width = min(abs(crop_width), img_width)
                 crop_height = min(abs(crop_height), img_height)
@@ -68,8 +69,6 @@ def optimize_image(
                     img = img.crop((int(left), int(top), int(right), int(bottom)))
                     img_width, img_height = img.size  # Update dimensions after crop
 
-            # --- Resizing Logic ---
-            # Determine target dimensions, use original if max is -1 or invalid
             target_width = (
                 max_width if isinstance(max_width, int) and max_width > 0 else img_width
             )
@@ -79,9 +78,7 @@ def optimize_image(
                 else img_height
             )
 
-            # Use thumbnail only if target size is smaller than current size
             if target_width < img_width or target_height < img_height:
-                # Use LANCZOS (formerly ANTIALIAS) for potentially better quality resize
                 try:
                     img.thumbnail(
                         (target_width, target_height), Image.Resampling.LANCZOS
@@ -89,15 +86,12 @@ def optimize_image(
                 except AttributeError:  # Fallback for older Pillow versions
                     img.thumbnail((target_width, target_height), Image.ANTIALIAS)
 
-            # --- Determine Output Path and Format ---
             base, _ = os.path.splitext(output_path)
             save_format = str(output_format).lower()  # Ensure lowercase string
 
             if save_format == "original":
-                # Use original extension from input path
                 _, ext = os.path.splitext(input_path)
                 output_path = base + ext.lower()
-                # Infer format from extension for saving
                 ext_lower = ext.lower()
                 if ext_lower in (".jpg", ".jpeg"):
                     save_format = "jpeg"
@@ -107,18 +101,14 @@ def optimize_image(
                     save_format = "webp"
                 elif ext_lower in (".heic", ".heif"):
                     save_format = "heif"
-                # Add other formats if needed (bmp, gif, tiff?) - default to original PIL format
                 else:
                     try:
                         save_format = img.format  # Use PIL's detected format
                         if not save_format:  # If format is None
                             raise ValueError("Could not detect original format")
                     except Exception:
-                        # Fallback if format detection fails - maybe default to PNG?
                         return f"Could not determine original save format for {os.path.basename(input_path)}"
             elif save_format in ["webp", "jpg", "jpeg", "png"]:
-                # Use the specified format's extension
-                # Handle jpg/jpeg case
                 file_ext = ".jpg" if save_format == "jpeg" else ("." + save_format)
                 output_path = base + file_ext
                 if save_format == "jpg":
@@ -126,17 +116,12 @@ def optimize_image(
             else:
                 return f"Unsupported output format specified: {output_format}"
 
-            # --- Prepare Save Arguments and Handle Transparency ---
             save_kwargs = {}
             img_to_save = img  # Start with the potentially resized/cropped image
 
-            # Handle transparency for formats that don't support it (like JPEG)
             if save_format == "jpeg" and img_to_save.mode in ("RGBA", "LA", "P"):
-                # Create a white background image
                 background = Image.new("RGB", img_to_save.size, (255, 255, 255))
-                # Paste the image onto the background using the alpha channel as mask
                 try:
-                    # If mode is P (palette), convert to RGBA first to get alpha
                     if img_to_save.mode == "P":
                         img_to_save = img_to_save.convert("RGBA")
                     background.paste(img_to_save, mask=img_to_save.split()[-1])
@@ -148,20 +133,15 @@ def optimize_image(
                         "RGB"
                     )  # Fallback to simple conversion
                 except Exception:
-                    # Fallback: just convert to RGB, losing transparency
                     img_to_save = img_to_save.convert("RGB")
             else:
-                # Handle transparency for formats that support it (like WebP)
                 if save_format == "webp" and img_to_save.mode in ("RGBA", "LA"):
                     pass  # Pillow handles RGBA correctly with 'lossless' or by setting background
                 elif save_format == "png" and img_to_save.mode in ("RGBA", "LA"):
-                    # Pillow's PNG saver handles RGBA correctly with 'lossless' or by setting background
                     pass  # Pillow attempts to handle transparency
                 else:
-                    # For other formats, just convert to RGB, losing transparency
                     img_to_save = img_to_save.convert("RGB")
 
-            # Set format-specific save options
             pil_save_format = save_format.upper()  # PIL expects uppercase format string
 
             if pil_save_format == "JPEG":
@@ -170,30 +150,23 @@ def optimize_image(
                 save_kwargs["progressive"] = True  # Often good for web jpegs
             elif pil_save_format == "PNG":
                 save_kwargs["optimize"] = True
-                # You could add compress_level: save_kwargs['compress_level'] = 6 # 0-9
             elif pil_save_format == "WEBP":
                 save_kwargs["quality"] = quality
-                # Lossless is an option for WebP, might depend on quality/user choice later
                 save_kwargs["method"] = (
                     6  # 0 (fastest) to 6 (slowest, best compression)
                 )
-                # Handle potential Pillow version differences in RGBA WebP saving
                 try:
-                    # This check might not be strictly necessary in recent Pillow versions
                     if img_to_save.mode == "RGBA":
                         pass  # Assume Pillow handles RGBA correctly
                     img_to_save.save(output_path, format=pil_save_format, **save_kwargs)
                 except OSError as webp_e:
-                    # Pillow might raise OSError if RGBA save fails in some versions/configs
                     if "cannot write mode RGBA" in str(webp_e):
-                        # Fallback: convert to RGB before saving, losing transparency
                         img_rgb = img_to_save.convert("RGB")
                         img_rgb.save(output_path, format=pil_save_format, **save_kwargs)
                     else:
                         raise  # Re-raise other OS errors
                 return True  # Return early for WebP after specific save logic
 
-            # --- Save the image (for non-WebP formats) ---
             img_to_save.save(output_path, format=pil_save_format, **save_kwargs)
 
         return True
@@ -204,7 +177,6 @@ def optimize_image(
     ) as ve:  # Catch potential Pillow value errors (e.g., invalid quality)
         return f"Image library error for {os.path.basename(input_path)}: {ve}"
     except Exception as e:
-        # Add more context to the error message
         return f"Error processing {os.path.basename(input_path)} (Format: {output_format}): {type(e).__name__} - {str(e)}"
 
 
@@ -234,7 +206,6 @@ class DragDropLineEdit(QLineEdit):
     def dragEnterEvent(self, event: QDragEnterEvent):
         """Handle drag enter events for the line edit."""
         if event.mimeData().hasUrls():
-            # Accept both files and directories
             for url in event.mimeData().urls():
                 path = url.toLocalFile()
                 if os.path.isdir(path) or (
@@ -257,6 +228,65 @@ class DragDropLineEdit(QLineEdit):
                 return
 
 
+class ToggleSwitch(QWidget):
+    """Modern toggle switch widget with clear ON/OFF visual states."""
+
+    toggled = pyqtSignal(bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._checked = False
+        self.setFixedSize(50, 28)
+        self.setCursor(Qt.PointingHandCursor)
+
+    def paintEvent(self, event):
+        from PyQt5.QtCore import QRectF
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        if self._checked:
+            track_color = QColor("#4CAF50")  # Green when ON
+            thumb_color = QColor("#FFFFFF")
+        else:
+            track_color = QColor("#999999")  # Gray when OFF
+            thumb_color = QColor("#FFFFFF")
+
+        track_rect = QRectF(0, 0, self.width(), self.height())
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(track_color)
+        painter.drawRoundedRect(track_rect, self.height() / 2, self.height() / 2)
+
+        thumb_radius = (self.height() - 6) / 2
+        if self._checked:
+            thumb_x = self.width() - thumb_radius - 3
+        else:
+            thumb_x = thumb_radius + 3
+        thumb_y = self.height() / 2
+
+        painter.setBrush(thumb_color)
+        painter.setPen(QPen(QColor("#E0E0E0"), 1))
+        painter.drawEllipse(
+            int(thumb_x - thumb_radius),
+            int(thumb_y - thumb_radius),
+            int(thumb_radius * 2),
+            int(thumb_radius * 2),
+        )
+
+    def mousePressEvent(self, event):
+        self._checked = not self._checked
+        self.update()
+        self.toggled.emit(self._checked)
+
+    def isChecked(self):
+        return self._checked
+
+    def setChecked(self, checked):
+        if self._checked != checked:
+            self._checked = checked
+            self.update()
+
+
 class ImageOptimizerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -265,15 +295,12 @@ class ImageOptimizerWindow(QMainWindow):
 
         self.author_label = QLabel("© 2024 Piotr Proszowski")
         self.author_label.setAlignment(Qt.AlignRight)
-        # Style will be applied in apply_styles
 
         app = QApplication.instance()
         try:
             if app:
                 self.is_dark_mode = app.palette().window().color().lightness() < 128
-                # Get standard icons based on style
                 self.style_icons = {
-                    # Use standard icons - appearance might vary by OS/theme
                     "save": app.style().standardIcon(QStyle.SP_DialogSaveButton),
                     "overwrite": app.style().standardIcon(
                         QStyle.SP_DialogApplyButton
@@ -303,14 +330,12 @@ class ImageOptimizerWindow(QMainWindow):
             self.is_dark_mode = False
             self.style_icons = {}
 
-        # --- Central Widget and Layout ---
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         layout.setSpacing(12)  # Adjust spacing
         layout.setContentsMargins(15, 15, 15, 15)  # Adjust margins
 
-        # --- Input Folder/File ---
         input_group = QGroupBox("Input")
         input_group.setToolTip("Select a folder or a single image file to optimize.")
         input_layout = QHBoxLayout(input_group)
@@ -339,13 +364,11 @@ class ImageOptimizerWindow(QMainWindow):
         input_layout.addWidget(browse_file_button)
         layout.addWidget(input_group)
 
-        # --- Processing Settings Group ---
         settings_group = QGroupBox("Processing Settings")
         settings_group.setToolTip("Configure image resizing, cropping, and quality.")
         settings_layout = QVBoxLayout(settings_group)
         settings_layout.setSpacing(10)
 
-        # Resolution
         resolution_layout = QHBoxLayout()
         resolution_layout.setSpacing(10)
         self.resolution_presets = {
@@ -370,7 +393,6 @@ class ImageOptimizerWindow(QMainWindow):
         resolution_layout.addWidget(resolution_label)
         resolution_layout.addWidget(self.resolution_combo, 1)
 
-        # Custom Inputs
         self.custom_resolution_widget = QWidget()
         self.custom_resolution_widget.setToolTip(
             "Define custom maximum width and height when 'Custom' resolution is selected."
@@ -391,19 +413,19 @@ class ImageOptimizerWindow(QMainWindow):
         settings_layout.addLayout(resolution_layout)
         self.on_resolution_changed(self.resolution_combo.currentText())
 
-        # Crop Row
         crop_layout = QHBoxLayout()
         crop_layout.setSpacing(10)
-        self.crop_button = QPushButton("Center Crop")
-        self.crop_button.setCheckable(True)
-        self.crop_button.setToolTip(
+
+        crop_label = QLabel("Center Crop")
+        crop_label.setToolTip(
             "Enable to crop images to the specified dimensions from the center before resizing."
         )
-        if "crop" in self.style_icons:
-            self.crop_button.setIcon(self.style_icons["crop"])
-            self.crop_button.setIconSize(QSize(16, 16))
-        self.crop_button.toggled.connect(self.on_crop_toggled)
-        crop_layout.addWidget(self.crop_button)
+        crop_layout.addWidget(crop_label)
+
+        self.crop_switch = ToggleSwitch()
+        self.crop_switch.setToolTip("Toggle to enable/disable center cropping")
+        self.crop_switch.toggled.connect(self.on_crop_toggled)
+        crop_layout.addWidget(self.crop_switch)
 
         self.crop_dimensions_widget = QWidget()
         self.crop_dimensions_widget.setToolTip(
@@ -424,12 +446,9 @@ class ImageOptimizerWindow(QMainWindow):
         crop_layout.addWidget(self.crop_dimensions_widget, 1)  # Allow inputs to expand
         settings_layout.addLayout(crop_layout)  # Add crop layout to settings group
 
-        # Quality Row - Moved to its own row
         quality_layout = QHBoxLayout()
         quality_layout.setSpacing(10)
         quality_label = QLabel("Quality:")
-        # Use setPixmap to add icon to QLabel if possible
-        # if 'quality' in self.style_icons: quality_label.setPixmap(self.style_icons['quality'].pixmap(16, 16))
         quality_label.setToolTip(
             "Set the image quality for saving (1-100). Lower values mean smaller files but lower quality."
         )
@@ -450,7 +469,6 @@ class ImageOptimizerWindow(QMainWindow):
 
         layout.addWidget(settings_group)
 
-        # --- Output & Scope Group ---
         output_scope_group = QGroupBox("Output & Scope")
         output_scope_group.setToolTip(
             "Configure output format, file handling, and folder scope."
@@ -460,12 +478,10 @@ class ImageOptimizerWindow(QMainWindow):
         )  # Changed to QVBoxLayout for format row
         output_scope_layout.setSpacing(10)
 
-        # Output Format Row
         format_layout = QHBoxLayout()  # New layout for format selection
         format_label = QLabel("Output Format:")
         if "format" in self.style_icons:
             try:
-                # Attempt to set pixmap, might fail depending on icon validity/context
                 pixmap = self.style_icons["format"].pixmap(16, 16)  # Try getting pixmap
                 format_label.setPixmap(pixmap)
             except Exception:  # Catch potential errors during pixmap creation
@@ -486,44 +502,44 @@ class ImageOptimizerWindow(QMainWindow):
         format_layout.addWidget(self.output_format_combo, 1)  # Allow combo to expand
         output_scope_layout.addLayout(format_layout)  # Add format row first
 
-        # Overwrite / Recursive Row
         overwrite_recursive_layout = (
             QHBoxLayout()
         )  # Layout for the buttons below format
         overwrite_recursive_layout.setSpacing(10)
 
-        # Overwrite Button (No functional changes, tooltip updated)
-        self.overwrite_button = QPushButton("Overwrite Originals")
-        self.overwrite_button.setCheckable(True)
-        self.overwrite_button.setChecked(False)
-        self.overwrite_button.setToolTip(
+        overwrite_label = QLabel("Overwrite Originals")
+        overwrite_label.setToolTip(
             "Replace original files (only possible if output format is 'Original').\\nWARNING: This action cannot be undone."
         )
-        if "overwrite" in self.style_icons:
-            self.overwrite_button.setIcon(self.style_icons["overwrite"])
-        self.overwrite_button.toggled.connect(
-            self._update_option_states
-        )  # Keep connection
-        overwrite_recursive_layout.addWidget(self.overwrite_button)
+        overwrite_recursive_layout.addWidget(overwrite_label)
+
+        self.overwrite_switch = ToggleSwitch()
+        self.overwrite_switch.setChecked(False)
+        self.overwrite_switch.setToolTip(
+            "Toggle to enable/disable overwriting original files"
+        )
+        self.overwrite_switch.toggled.connect(self._update_option_states)
+        overwrite_recursive_layout.addWidget(self.overwrite_switch)
 
         overwrite_recursive_layout.addStretch(1)
 
-        # Recursive Button (No functional changes)
-        self.recursive_button = QPushButton("Process Subfolders")
-        self.recursive_button.setCheckable(True)
-        self.recursive_button.setChecked(True)
-        self.recursive_button.setToolTip(
+        subfolders_label = QLabel("Process Subfolders")
+        subfolders_label.setToolTip(
             "Include images found in subfolders of the selected input folder."
         )
-        if "folder" in self.style_icons:
-            self.recursive_button.setIcon(self.style_icons["folder"])
-        overwrite_recursive_layout.addWidget(self.recursive_button)
+        overwrite_recursive_layout.addWidget(subfolders_label)
+
+        self.recursive_switch = ToggleSwitch()
+        self.recursive_switch.setChecked(True)
+        self.recursive_switch.setToolTip(
+            "Toggle to enable/disable recursive folder processing"
+        )
+        overwrite_recursive_layout.addWidget(self.recursive_switch)
         output_scope_layout.addLayout(overwrite_recursive_layout)  # Add button row
 
         layout.addWidget(output_scope_group)
         self._update_option_states()  # Set initial states
 
-        # --- Progress Bar and Status ---
         layout.addSpacing(5)  # Reduced spacing
         self.progress_bar = QProgressBar()
         self.progress_bar.setToolTip("Shows the progress of the optimization process.")
@@ -535,65 +551,52 @@ class ImageOptimizerWindow(QMainWindow):
         layout.addWidget(self.status_label)
         layout.addSpacing(5)  # Reduced spacing
 
-        # --- Start Button ---
         start_button = QPushButton("Start Optimization")
         start_button.setObjectName("StartButton")
         start_button.setToolTip("Begin processing images with the selected settings.")
-        # Consider adding a 'play' or 'rocket' icon?
-        # start_button.setIcon(app.style().standardIcon(QStyle.SP_MediaPlay))
         start_button.clicked.connect(self.start_optimization)
         layout.addWidget(start_button)
 
-        # --- Author Label ---
         layout.addStretch(1)
         self.author_label.setToolTip("Application author information.")  # Added tooltip
         layout.addWidget(self.author_label)
 
-        # --- Apply Styles ---
         self.apply_styles()  # Apply after all widgets are created
 
     def _update_option_states(self):
         """Enable/disable Overwrite button based on Output Format selection."""
-        # Block signals to prevent loops (important when multiple widgets trigger this)
-        # Ensure widgets exist before blocking signals
         if hasattr(self, "overwrite_button"):
             self.overwrite_button.blockSignals(True)
         if hasattr(self, "output_format_combo"):
             self.output_format_combo.blockSignals(True)
 
         try:
-            # Check if output_format_combo exists before accessing it
             if hasattr(self, "output_format_combo"):
                 selected_format = self.output_format_combo.currentText()
                 is_original_format = selected_format == "Original"
 
-                # Check if overwrite_button exists before accessing it
-                if hasattr(self, "overwrite_button"):
+                if hasattr(self, "overwrite_switch"):
                     if not is_original_format:
-                        # If format is NOT Original, turn OFF Overwrite and disable it
-                        if self.overwrite_button.isChecked():
-                            self.overwrite_button.setChecked(
+                        if self.overwrite_switch.isChecked():
+                            self.overwrite_switch.setChecked(
                                 False
                             )  # Turn off Overwrite
-                        self.overwrite_button.setEnabled(False)
-                        self.overwrite_button.setToolTip(
+                        self.overwrite_switch.setEnabled(False)
+                        self.overwrite_switch.setToolTip(
                             "Disabled because output format is not 'Original'."
                         )
                     else:
-                        # If format IS Original, enable Overwrite button
-                        self.overwrite_button.setEnabled(True)
-                        self.overwrite_button.setToolTip(
-                            "Replace original files (only possible if output format is 'Original').\\nWARNING: This action cannot be undone."
+                        self.overwrite_switch.setEnabled(True)
+                        self.overwrite_switch.setToolTip(
+                            "Toggle to enable/disable overwriting original files"
                         )
         finally:
-            # Always re-enable signals if widgets exist
-            if hasattr(self, "overwrite_button"):
-                self.overwrite_button.blockSignals(False)
+            if hasattr(self, "overwrite_switch"):
+                self.overwrite_switch.blockSignals(False)
             if hasattr(self, "output_format_combo"):
                 self.output_format_combo.blockSignals(False)
 
     def apply_styles(self):
-        # --- iOS Style Attempt ---
         font_family = "System"  # Use system font, closest to San Francisco on macOS
         background_color = "#F2F2F7" if not self.is_dark_mode else "#1C1C1E"
         text_color = "#000000" if not self.is_dark_mode else "#FFFFFF"
@@ -716,10 +719,8 @@ class ImageOptimizerWindow(QMainWindow):
              QProgressBar::chunk {{
                  background-color: {accent_color}; border-radius: 7px; margin: 1px;
              }}
-             #AuthorLabel {{ color: {secondary_text_color}; padding: 5px; font-size: 12px; }}
         """)
         self.author_label.setObjectName("AuthorLabel")
-        # Styles for author label are now in the main stylesheet via #AuthorLabel
 
     def browse_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Input Folder")
@@ -775,13 +776,12 @@ class ImageOptimizerWindow(QMainWindow):
     def get_all_image_files(self, directory, recursive=False):
         """Get all image files, skipping 'optimized' dir if not overwriting."""
         image_files = []
-        is_overwriting = self.overwrite_button.isChecked()  # Check button state
+        is_overwriting = self.overwrite_switch.isChecked()  # Check switch state
         optimized_dir_name = "optimized"  # Define once
 
         try:
             if recursive:
                 for root, dirs, files in os.walk(directory, topdown=True):
-                    # Exclude the optimized directory from recursion if not overwriting
                     if not is_overwriting and optimized_dir_name in dirs:
                         dirs.remove(optimized_dir_name)
 
@@ -794,10 +794,8 @@ class ImageOptimizerWindow(QMainWindow):
                         except Exception:
                             pass
             else:
-                # Scan only the top directory
                 optimized_dir_path = os.path.join(directory, optimized_dir_name)
                 for entry in os.scandir(directory):
-                    # Skip the optimized directory itself if not overwriting
                     if (
                         not is_overwriting
                         and entry.is_dir()
@@ -825,7 +823,6 @@ class ImageOptimizerWindow(QMainWindow):
             self.show_error("Please select a valid folder or image file.")
             return
 
-        # Check if it's a single file
         is_single_file = os.path.isfile(input_path)
         if is_single_file:
             if not is_image_file(input_path):
@@ -838,7 +835,6 @@ class ImageOptimizerWindow(QMainWindow):
             single_filename = None
 
         try:
-            # Resolution (logic remains the same)
             selected_resolution = self.resolution_combo.currentText()
             max_width, max_height = -1, -1
             if selected_resolution == "Custom":
@@ -851,13 +847,11 @@ class ImageOptimizerWindow(QMainWindow):
             elif selected_resolution != "Original":
                 max_width, max_height = self.resolution_presets[selected_resolution]
 
-            # Quality (logic remains the same)
             quality = int(self.quality_input.text())
             if not (1 <= quality <= 100):
                 raise ValueError("Quality must be between 1 and 100")
 
-            # Cropping parameters - check button state
-            crop_enabled = self.crop_button.isChecked()
+            crop_enabled = self.crop_switch.isChecked()
             crop_width = None
             crop_height = None
             if crop_enabled:
@@ -874,16 +868,13 @@ class ImageOptimizerWindow(QMainWindow):
                 if not (0 < crop_height):
                     raise ValueError("Crop Height must be positive")
 
-            # Read selected output format and overwrite options
             output_format = (
                 self.output_format_combo.currentText().lower()
             )  # Get selected format
-            overwrite_originals = self.overwrite_button.isChecked()
-            recursive = self.recursive_button.isChecked()
+            overwrite_originals = self.overwrite_switch.isChecked()
+            recursive = self.recursive_switch.isChecked()
 
-            # Consistency check (now based on format)
             if overwrite_originals and output_format != "original":
-                # This state should ideally be prevented by _update_option_states
                 self.show_error(
                     "Configuration error: Can only overwrite originals if output format is 'Original'."
                 )
@@ -896,13 +887,10 @@ class ImageOptimizerWindow(QMainWindow):
             self.show_error(f"Setup error: {str(e)}")
             return
 
-        # Get image files (error handling remains)
         try:
             if is_single_file:
-                # Single file mode - create a list with just this file
                 image_files = [(input_path, single_filename)]
             else:
-                # Folder mode - get all images
                 image_files = self.get_all_image_files(directory, recursive)
         except OSError as e:
             self.show_error(str(e))
@@ -919,7 +907,6 @@ class ImageOptimizerWindow(QMainWindow):
             )
             return
 
-        # Confirmation for Overwrite
         if overwrite_originals:
             if is_single_file:
                 confirm_msg = f"You are about to permanently overwrite the original image '{single_filename}'.\\n\\nThis action cannot be undone. Are you sure you want to continue?"
@@ -941,7 +928,6 @@ class ImageOptimizerWindow(QMainWindow):
                 self.status_label.setText("Ready")
                 return
 
-        # Process images (core loop logic remains similar, just path definition changes)
         processed = 0
         errors = 0
         error_messages = []
@@ -950,12 +936,9 @@ class ImageOptimizerWindow(QMainWindow):
         self.status_label.setText(f"Starting optimization for {total_images} images...")
         QApplication.processEvents()
 
-        # Set output directory
         if is_single_file:
-            # For single file, put optimized version in same directory
             output_base_dir = directory if overwrite_originals else directory
         else:
-            # For folder, use optimized subfolder
             output_base_dir = (
                 directory
                 if overwrite_originals
@@ -963,16 +946,13 @@ class ImageOptimizerWindow(QMainWindow):
             )
 
         for input_file_path, rel_path in image_files:
-            # Handle output path
             if is_single_file and not overwrite_originals:
-                # For single file not overwriting, add "_optimized" suffix
                 base_name, ext = os.path.splitext(single_filename)
                 output_filename = f"{base_name}_optimized{ext}"
                 output_path = os.path.join(output_base_dir, output_filename)
             else:
                 output_path = os.path.join(output_base_dir, rel_path)
 
-            # Ensure the output directory exists only if *not* overwriting
             if not overwrite_originals:
                 try:
                     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -987,7 +967,6 @@ class ImageOptimizerWindow(QMainWindow):
                     QApplication.processEvents()
                     continue
 
-            # Adjust max_width/height for 'Original' (logic remains the same)
             current_max_width, current_max_height = -1, -1
             use_original_size = selected_resolution == "Original"
             if use_original_size:
@@ -1004,7 +983,6 @@ class ImageOptimizerWindow(QMainWindow):
                         self.progress_bar.setValue(processed)
                         QApplication.processEvents()
                         continue
-                # else: If cropping original, keep -1,-1 for optimize_image
             elif selected_resolution == "Custom":
                 try:  # Re-read in case values were invalid during initial check but fixed
                     current_max_width = int(self.width_input.text())
@@ -1025,8 +1003,6 @@ class ImageOptimizerWindow(QMainWindow):
                     selected_resolution
                 ]
 
-            # Call optimize_image with the selected output format
-            # Pass the potentially temporary output path; optimize_image will adjust extension
             result = optimize_image(
                 input_file_path,
                 output_path,  # Pass base output path
@@ -1057,7 +1033,6 @@ class ImageOptimizerWindow(QMainWindow):
             self.progress_bar.setValue(processed)
             QApplication.processEvents()
 
-        # Final status update & error reporting (logic remains the same)
         success_count = processed - errors
         summary_message = f"Optimization complete.\\nSuccessfully processed: {success_count}\\nErrors: {errors}"
         if errors > 0:
