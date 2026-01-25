@@ -1,67 +1,44 @@
-# Image Optimizer
+# Next-Gen Batch Image Processor (macOS ARM)
 
-Narzędzie do wsadowej optymalizacji obrazów z GUI.
+A high-performance image processing application built with Tauri v2, Rust, and React, optimized for Apple Silicon.
 
-## Szybki Start
+## Prerequisites
 
-### Gotowe Aplikacje (bez instalacji)
+Before running the application, ensure you have the following installed via Homebrew:
 
-1. Pobierz z folderu `dist/`:
-   - **macOS ARM:** `image_optimizer.app` (M1/M2/M3)
-   - **Windows x64:** `image_optimizer.exe`
-2. Kliknij dwukrotnie i uruchom
-3. Wybierz folder LUB pojedynczy plik obrazu
-
-**macOS:** Przy pierwszym uruchomieniu: prawy klik → Otwórz → Otwórz  
-**Windows:** Windows Defender może ostrzegać - kliknij "Więcej informacji" → "Uruchom mimo to"
-
----
-
-## Budowanie
-
-### macOS
 ```bash
-./build_macos.sh
+# Core dependencies
+brew install vips protobuf pkg-config
+
+# Verify installation
+vips --version
+pkg-config --libs vips
 ```
-Wynik: `dist/image_optimizer.app`
 
-### Windows
-```cmd
-build_windows.bat
-```
-Wynik: `dist\image_optimizer.exe`
+## Development Setup
 
----
+1.  **Install Frontend Dependencies**:
+    ```bash
+    npm install
+    ```
 
-## Funkcje
+2.  **Run Development Server**:
+    ```bash
+    npm run tauri dev
+    ```
 
-- **Pojedyncze pliki** lub **wsadowe przetwarzanie** folderów
-- **Presety rozdzielczości:** HD, Full HD, 2K, 4K, Custom, Original
-- **Kadrowanie** do wybranych wymiarów
-- **Kompresja** z regulowaną jakością (1-100)
-- **Konwersja formatów:** JPEG, PNG, WebP
-- **Drag & Drop** dla plików i folderów
-- **Obsługa formatów:**
-  - JPG/JPEG
-  - PNG (z przezroczystością)
-  - WebP (z przezroczystością)
-  - HEIC/HEIF (zdjęcia z iPhone)
-  - GIF, BMP, TIFF
-- **Rekursywne przetwarzanie** podfolderów
-- **Automatyczny motyw** jasny/ciemny
+## Architecture
 
----
+-   **Backend**: Rust (src-tauri)
+    -   `libvips`: Image processing engine (dynamically linked).
+    -   `ort`: AI Inference (ONNX Runtime) with CoreML acceleration.
+    -   `Tauri v2`: Application framework.
+-   **Frontend**: React + TypeScript + Vite
+    -   `Shadcn/UI`: Component library.
+    -   `TanStack Query`: State management.
+    -   `Tailwind CSS`: Styling.
 
-## Wymagania
+## Troubleshooting
 
-**Gotowe aplikacje:** macOS 11+ lub Windows 10+
-
-**Budowanie:**
-- Python 3.8+
-- Zależności: `pip install -r requirements.txt`
-
----
-
-## Autor
-
-Piotr Proszowski
+-   **Linker Errors**: If you see errors about missing `vips` or `glib`, ensure `.cargo/config.toml` exists and points validly to `/opt/homebrew/lib/pkgconfig`.
+-   **Permissions**: If "Open Folder" doesn't work, check `System Settings > Privacy & Security > Files and Folders`.
