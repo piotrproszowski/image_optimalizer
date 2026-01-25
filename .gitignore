@@ -1,3 +1,20 @@
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Rust / Tauri
+target/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/*.log
+src-tauri/bin/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -22,9 +39,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# PyInstaller
 *.manifest
+!image_optimizer.spec
 
 # IDEs
 .vscode/
@@ -32,9 +48,9 @@ wheels/
 *.swp
 *.swo
 *~
+.DS_Store
 
 # macOS
-.DS_Store
 .AppleDouble
 .LSOverride
 Icon
@@ -51,8 +67,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
@@ -63,5 +77,6 @@ $RECYCLE.BIN/
 *.msp
 *.lnk
 
-# Project specific - keep spec file
-!image_optimizer.spec
+# Logs and databases
+*.log
+*.sqlite

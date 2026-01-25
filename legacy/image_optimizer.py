@@ -6,8 +6,7 @@ Author: Piotr Proszowski
 import os
 import sys
 
-import pillow_heif
-from PIL import Image, UnidentifiedImageError
+# import pillow_heif  # Moved to lazy init
 from PyQt5.QtCore import (
     QEasingCurve,
     QMimeData,
