@@ -1,11 +1,10 @@
-use tauri::{Emitter, Manager, Window};
+use tauri::{Emitter, Window};
 use tokio::sync::Semaphore;
 use std::sync::Arc;
 use serde::Serialize;
-use anyhow::Context;
+
 
 mod processing;
-mod inference;
 
 use processing::{ProcessingConfig, ImageProcessor};
 
