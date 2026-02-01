@@ -1,50 +1,52 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
-@layer base {
-  :root {
-    /* Default to Dark Mode "Deep Cosmos" Theme */
-    --background: 230 25% 10%; /* Very dark blue */
-    --foreground: 210 40% 98%;
 
-    --card: 232 25% 12%; /* Slightly lighter dark blue */
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 232 25% 12%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 190 100% 50%; /* Electric Cyan */
-    --primary-foreground: 230 25% 10%;
- 
-    --secondary: 232 20% 18%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 232 20% 18%;
-    --muted-foreground: 215 20% 65%;
- 
-    --accent: 190 100% 50%;
-    --accent-foreground: 230 25% 10%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 232 20% 20%;
-    --input: 232 20% 20%;
-    --ring: 190 100% 50%;
- 
-    --radius: 0.75rem;
-  }
-}
- 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
+    :root {
+        /* Default to Dark Mode "Deep Cosmos" Theme */
+        --background: 230 25% 10%; /* Very dark blue */
+        --foreground: 210 40% 98%;
+
+        --card: 232 25% 12%; /* Slightly lighter dark blue */
+        --card-foreground: 210 40% 98%;
+
+        --popover: 232 25% 12%;
+        --popover-foreground: 210 40% 98%;
+
+        --primary: 190 100% 50%; /* Electric Cyan */
+        --primary-foreground: 230 25% 10%;
+
+        --secondary: 232 20% 18%;
+        --secondary-foreground: 210 40% 98%;
+
+        --muted: 232 20% 18%;
+        --muted-foreground: 215 20% 65%;
+
+        --accent: 190 100% 50%;
+        --accent-foreground: 230 25% 10%;
+
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 232 20% 20%;
+        --input: 232 20% 20%;
+        --ring: 190 100% 50%;
+
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+        font-feature-settings:
+            'rlig' 1,
+            'calt' 1;
+    }
 }
 
 @layer utilities {
