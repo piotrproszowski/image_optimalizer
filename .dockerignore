@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist
+.env.local
+.env.*.local
+
+# Rust
+target
+**/*.rs.bk
+Cargo.lock
+
+# Tauri (not needed for web deployment)
+src-tauri/target
+src-tauri/gen
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+
+# Temporary files
+tmp
+temp
+*.tmp

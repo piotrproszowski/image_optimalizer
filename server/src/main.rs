@@ -1,6 +1,6 @@
 use axum::{
     extract::{Multipart, Path as AxumPath, State},
-    http::{header, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -25,6 +25,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Clone)]
 struct AppState {
     jobs: Arc<RwLock<std::collections::HashMap<String, JobStatus>>>,
+    temp_dirs: Arc<RwLock<std::collections::HashMap<String, String>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +94,7 @@ async fn main() {
     // Create shared state
     let state = AppState {
         jobs: Arc::new(RwLock::new(std::collections::HashMap::new())),
+        temp_dirs: Arc::new(RwLock::new(std::collections::HashMap::new())),
     };
 
     // Configure CORS
@@ -167,6 +169,12 @@ async fn process_images(
     }
 
     let total_files = uploaded_files.len();
+    
+    // Store temp directory path for later download
+    {
+        let mut temp_dirs = state.temp_dirs.write().await;
+        temp_dirs.insert(job_id.clone(), temp_path.to_string_lossy().to_string());
+    }
     
     // Initialize job status
     {
@@ -272,29 +280,52 @@ async fn download_processed(
         .get(&id)
         .ok_or_else(|| anyhow::anyhow!("Job not found"))?
         .clone();
+    drop(jobs);
 
     if job.status != "completed" {
         return Err(anyhow::anyhow!("Job not yet completed").into());
     }
 
+    // Get temp directory path
+    let temp_dirs = state.temp_dirs.read().await;
+    let temp_dir_str = temp_dirs
+        .get(&id)
+        .ok_or_else(|| anyhow::anyhow!("Temp directory not found"))?;
+    let output_dir = std::path::PathBuf::from(temp_dir_str).join("output");
+    drop(temp_dirs);
+
     // Create a zip file with all processed images
-    let temp_dir = tempfile::tempdir()?;
-    let zip_path = temp_dir.path().join(format!("{}.zip", id));
+    let zip_temp_dir = tempfile::tempdir()?;
+    let zip_path = zip_temp_dir.path().join(format!("{}.zip", id));
     let file = std::fs::File::create(&zip_path)?;
     let mut zip = zip::ZipWriter::new(file);
 
-    // Add files to zip
-    // Note: In production, you'd need to properly track and access the temp directories
-    // For now, this is a placeholder structure
-    
+    let options = zip::write::FileOptions::default()
+        .compression_method(zip::CompressionMethod::Stored)
+        .unix_permissions(0o755);
+
+    // Add all output files to zip
+    for output_file in &job.output_files {
+        let file_path = output_dir.join(output_file);
+        if file_path.exists() {
+            let file_data = std::fs::read(&file_path)?;
+            zip.start_file(output_file, options)?;
+            std::io::Write::write_all(&mut zip, &file_data)?;
+        }
+    }
+
     zip.finish()?;
     drop(zip);
 
     let data = tokio::fs::read(&zip_path).await?;
+    
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/zip"));
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!("attachment; filename=\"processed-images-{}.zip\"", id))
+            .unwrap_or_else(|_| HeaderValue::from_static("attachment; filename=\"processed-images.zip\"")),
+    );
 
-    Ok((
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, "application/zip")],
-        data,
-    ))
+    Ok((StatusCode::OK, headers, data))
 }
