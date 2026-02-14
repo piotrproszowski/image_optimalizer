@@ -1,6 +1,5 @@
 import {
     FileImage,
-    FolderOpen,
     Settings as SettingsIcon,
     UploadCloud,
     Zap,
@@ -11,12 +10,6 @@ import { useState } from 'react';
 import './App.css';
 
 // Types
-interface ProcessingStats {
-    images_count: number;
-    size_saved_mb: number;
-    efficiency_percentage: number;
-}
-
 interface AppSettings {
     outputFormat: 'original' | 'webp' | 'png' | 'jpg' | 'avif';
     quality: number;

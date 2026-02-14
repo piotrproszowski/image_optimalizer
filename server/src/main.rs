@@ -161,8 +161,8 @@ async fn process_images(
             
             let input_path = temp_path.join(&file_name);
             tokio::fs::write(&input_path, &data).await?;
-            uploaded_files.push((file_name, input_path));
             info!("Uploaded file: {}", file_name);
+            uploaded_files.push((file_name, input_path));
         }
     }
 
