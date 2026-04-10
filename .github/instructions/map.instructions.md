@@ -63,8 +63,5 @@ applyTo: '**'
     - 📂 **models/**
         - **Role**: Bundled AI model files for future inference.
 
-- 📄 **requirements.txt**
-    - **Role**: Python dependencies for legacy/alternative desktop tooling.
-
 - 📄 **package.json**
     - **Role**: Frontend scripts and dependencies.
